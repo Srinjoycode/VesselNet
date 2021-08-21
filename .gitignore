@@ -130,3 +130,7 @@ dmypy.json
 
 #pycharm project settings
 .idea
+
+#Dataset folders
+Datasets/CHASE
+Datasets/DRIVE
