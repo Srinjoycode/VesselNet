@@ -101,39 +101,42 @@ def main(args):
     images, _ = next(iter(train_loader))
     writer.add_graph(model, images.to(args.device))
     writer.close()
-
+    PREV_EPOCHS = 0
     if args.load_model:
         load_checkpoint(torch.load(
             args.load_weights),
-            model)
+            model,optimizer=optimizer, epoch=PREV_EPOCHS, loss=loss_fn)
 
     check_metrics(loader=val_loader, model=model, device=args.device, writer={"writer": writer, "step": step})
 
     scaler = torch.cuda.amp.GradScaler()
 
-    for epoch in range(args.epochs):
+    for epoch in range(PREV_EPOCHS,args.epochs):
         print("Epoch : " + str(epoch))
         train_fn(train_loader, model, optimizer, loss_fn, scaler, args, writer=writer)
 
-        # save model
-        checkpoint = {
-            "state_dict": model.state_dict(),
-            "optimizer": optimizer.state_dict(),
-        }
-
-# TODO Add args for saveing checkpoint script file path
-        save_checkpoint(checkpoint, './VesselNetChase.pth.tar')
-
-        # check accuracy
-        try:
-            os.mkdir('saved_images')
-            os.mkdir('saved_images/pred')
-            os.mkdir('saved_images/truth_labels')
-        except:
-            print("Results directory already created")
-            pass
+        # save model and predictions
+        if epoch == (args.epochs - 1):
+            checkpoint = {
+                "epoch": epoch,
+                "state_dict": model.state_dict(),
+                "optimizer": optimizer.state_dict(),
+                "loss": loss_fn,
+            }
+            # TODO Add args for saving checkpoint script file path
+            checkpoint_name = './VesselNetChase_Epochs' + str(epoch) + '_CHASE.pth.tar'
+            save_checkpoint(checkpoint, checkpoint_name)
+            try:
+                os.mkdir('validation_saved_images')
+                os.mkdir('validation_saved_images/pred')
+                os.mkdir('validation_saved_images/truth_labels')
+            except:
+                print("Results directory already created")
+                pass
+            save_predictions_as_imgs(val_loader, model, folder="saved_images", device=args.device)
+        #CHECK METRICS
         check_metrics(val_loader, model, device=args.device, writer={"writer": writer, "step": step})
-        save_predictions_as_imgs(val_loader, model, folder="saved_images", device=args.device)
+
         step += 1
 
 
