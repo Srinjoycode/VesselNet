@@ -4,7 +4,7 @@
 
 Glaucoma is a group of eye conditions that damage the optic nerve, the health of which is vital for good vision. This damage is often caused by an abnormally high pressure in your eye. Early detection of this condition is important for it's treatment.
 
-<img src="https://user-images.githubusercontent.com/42441054/131241598-d7c3ea96-84a5-436c-aa36-48940315f41b.jpg" width="100" height="100">
+<img src="https://user-images.githubusercontent.com/42441054/131241598-d7c3ea96-84a5-436c-aa36-48940315f41b.jpg" width="400" height="400">
 
 One way of detecting this disease is through Blood Vessel Segmentation. It is found that one of the symptoms of Glaucoma is huge branching of blood vessel in the fundus of the eyes, than the normal. Detecting the number of branches of a blood vessel in the eye can help know if the patient is prone to Glaucoma, beforehand.
 
