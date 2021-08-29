@@ -2,8 +2,8 @@ import albumentations as A
 import cv2
 import os
 
-images = os.listdir('Images/CHASE/CHASE/train/image')
-masks = os.listdir('Images/CHASE/CHASE/train/label')
+images = os.listdir('Images/CHASE/CHASE/train/image') # replace with the base dataset image folder location
+masks = os.listdir('Images/CHASE/CHASE/train/label') # replace with the base dataset mask folder location
 
 HEIGHT = 960
 WIDTH = 999
@@ -33,14 +33,14 @@ transform = A.Compose([
 
 counter = 1
 for i in range(0, 1):
-    image = cv2.imread(f'Images/CHASE/CHASE/train/image/{images[i]}')
-    mask = cv2.imread(f'Images/CHASE/CHASE/train/label/{masks[i]}')
+    image = cv2.imread(f'Images/CHASE/CHASE/train/image/{images[i]}') # replace with the base dataset file location
+    mask = cv2.imread(f'Images/CHASE/CHASE/train/label/{masks[i]}') # replace with the base dataset file location
     for j in range(5):
         transformed = transform(image=image,mask=mask)
         transformed_image = transformed["image"]
         transformed_masks = transformed['mask']
         number = '{:0>4}'.format(counter)
-        cv2.imwrite(f'CHASE/augmented_images/CHASE_{number}.jpg', transformed_image)
-        cv2.imwrite(f'CHASE/augmented_labels/CHASE_{number}_mask.jpg', transformed_masks)
+        cv2.imwrite(f'CHASE/augmented_images/CHASE_{number}.jpg', transformed_image) # replace with desired file save location
+        cv2.imwrite(f'CHASE/augmented_labels/CHASE_{number}_mask.jpg', transformed_masks) # replace with desired file save location
         counter += 1
 
