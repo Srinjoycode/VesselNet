@@ -2,7 +2,7 @@
 
 ## DESCRIPTION
 
-Glaucoma is a group of eye conditions that damage the optic nerve, the health of which is vital for good vision. This damage is often caused by an abnormally high pressure in your eye. Early detection of this condition is important for it's treatment. It is commonly found in **dibetic patients**. 
+Glaucoma is a group of eye conditions that damage the optic nerve, the health of which is vital for good vision. This damage is often caused by an abnormally high pressure in your eye. Early detection of this condition is important for it's treatment. It is commonly found in **diabetic patients**. 
 
 <img src="https://www.womenfitness.net/img2016/artimg/march/Stages.jpg" width="500" height="300" align="right">
 
