@@ -35,7 +35,7 @@ counter = 1
 for i in range(0, 1):
     image = cv2.imread(f'Images/CHASE/CHASE/train/image/{images[i]}') # replace with the base dataset file location
     mask = cv2.imread(f'Images/CHASE/CHASE/train/label/{masks[i]}') # replace with the base dataset file location
-    for j in range(5):
+    for j in range(15):
         transformed = transform(image=image,mask=mask)
         transformed_image = transformed["image"]
         transformed_masks = transformed['mask']
