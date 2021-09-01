@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torchvision.transforms.functional as TF
 
-from conv_attention import AttentionBlock
-from conv_blocks import DoubleConv, SingleConv
+from models.conv_attention import AttentionBlock
+from models.conv_blocks import DoubleConv, SingleConv
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
