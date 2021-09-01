@@ -52,9 +52,12 @@ def save_checkpoint(state, filename="VesselNetChase.pth.tar"):
     torch.save(state, filename)
 
 
-def load_checkpoint(checkpoint, model):
+def load_checkpoint(checkpoint, model, optimizer, epoch, loss):
     print("=> Loading checkpoint")
     model.load_state_dict(checkpoint['state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer'])
+    epoch = checkpoint['epoch']
+    loss = checkpoint['loss']
 
 
 def save_predictions_as_imgs(loader, model, folder="saved_images/", device="cuda"):
