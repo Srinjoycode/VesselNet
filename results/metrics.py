@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import torchmetrics
 import torchmetrics.functional
+import pandas as pd
 
 step = 0
 
@@ -108,5 +109,35 @@ def check_metrics(loader, model, writer, device="cuda"):
     print(f"torch-metrics mean specificity: {total_specificity / len(loader)}")
 
     print(f"Custom MCC metrics value:{total_mcc / len(loader)}")
+    
+    print(adding_metrics(epoch_no, float(acc), float(total_iou_score),
+                                        float(batch_dice_score),
+                                        float(total_f1),
+                                        float(total_precision),
+                                        float(total_recall),
+                                        float(total_specificity)))
+
 
     model.train()  # end of model evaluation
+    
+    
+#function to upadate dataframe which contains all the mertics for each epoch  
+prediction = pd.DataFrame(columns=['Epoch_no','Accuracy','IoU','Dice','f1_score','Precision','Recall','Specificity'])
+
+def adding_metrics(epoch_no, accuracy, iou,dice, f1_score, precision, recall, specificity):
+    global prediction
+    new_row = {'Epoch_no': epoch_no, 
+               'Accuracy': accuracy, 
+               'IoU': iou,
+               'Dice': dice,
+               'f1_score': f1_score,
+               'Precision': precision,
+               'Recall': recall,
+               'Specificity':specificity}
+    prediction = prediction.append(new_row, ignore_index=True)
+    return prediction
+
+#function to convert it to csv file
+def convert_to_csv(prediction):
+    prediction.to_csv(r'./metrics.csv', header=True)
+
