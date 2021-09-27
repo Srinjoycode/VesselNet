@@ -134,3 +134,4 @@ dmypy.json
 #Dataset folders
 Datasets/CHASE
 Datasets/DRIVE
+ Datasets/mini_datasets/
