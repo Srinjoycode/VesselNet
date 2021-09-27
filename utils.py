@@ -2,8 +2,9 @@ import torch
 import torchvision
 
 from torch.utils.data import DataLoader
-from Datasets.dataloader import CHASE
-from Datasets.dataloader import DRIVE
+from Datasets.dataloader import IMG_Dataset
+
+
 #TODO add a dataloader for DRIVE dataset
 def get_loaders(
         train_dir,
@@ -16,7 +17,7 @@ def get_loaders(
         num_workers=4,
         pin_memory=True
 ):
-    train_dataset = CHASE(
+    train_dataset = IMG_Dataset(
         image_dir=train_dir,
         mask_dir=train_mask_dir,
         transform=train_transform
@@ -30,7 +31,7 @@ def get_loaders(
         shuffle=True
     )
 
-    val_dataset = CHASE(
+    val_dataset = IMG_Dataset(
         image_dir=val_dir,
         mask_dir=val_mask_dir,
         transform=val_transform
@@ -47,7 +48,7 @@ def get_loaders(
     return train_loader, val_loader
 
 
-def save_checkpoint(state, filename="VesselNetChase.pth.tar"):
+def save_checkpoint(state, filename="Vessel_Net_checkpoint.pth.tar"):
     print("=> Saving checkpoint")
     torch.save(state, filename)
 

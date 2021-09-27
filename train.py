@@ -107,7 +107,7 @@ def main(args):
             args.load_weights),
             model,optimizer=optimizer, epoch=PREV_EPOCHS, loss=loss_fn)
 
-    check_metrics(loader=val_loader, model=model, device=args.device, writer={"writer": writer, "step": step})
+    check_metrics(loader=val_loader, model=model, device=args.device,epoch_no=PREV_EPOCHS, writer={"writer": writer, "step": step})
 
     scaler = torch.cuda.amp.GradScaler()
 
@@ -135,7 +135,7 @@ def main(args):
                 pass
             save_predictions_as_imgs(val_loader, model, folder="saved_images", device=args.device)
         #CHECK METRICS
-        check_metrics(val_loader, model, device=args.device, writer={"writer": writer, "step": step})
+        check_metrics(val_loader, model, device=args.device,epoch_no=PREV_EPOCHS,writer={"writer": writer, "step": step})
 
         step += 1
 
