@@ -249,5 +249,7 @@ def plotting_metrics(file_name):
 
 #function to convert it to csv file
 def convert_to_csv(prediction):
+    if(os.path.isfile('metrics.csv')):
+        os.remove('metrics.csv')
     prediction.to_csv(r'./metrics.csv', header=True)
 
