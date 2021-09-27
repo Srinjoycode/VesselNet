@@ -14,6 +14,7 @@ from results.metrics import check_metrics
 from utils import load_checkpoint, save_checkpoint, get_loaders, save_predictions_as_imgs
 
 torch.cuda.empty_cache()
+prediction = pd.DataFrame(columns=['Epoch_no','Accuracy','IoU','Dice','f1_score','Precision','Recall','Specificity'])
 
 step = 0
 
@@ -51,6 +52,11 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, args, writer):
 def main(args):
     global step
     torch.cuda.empty_cache()
+    
+    if(os.path.isfile('metrics.csv')):
+        prediction = pd.read_csv('metrics.csv')
+        prediction.drop(prediction.columns[prediction.columns.str.contains('unnamed',case = False)],axis = 1, inplace = True)
+        
     train_transform = A.Compose(
         [
             A.Resize(height=args.height, width=args.width),
