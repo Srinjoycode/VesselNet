@@ -3,6 +3,9 @@ import numpy as np
 import torchmetrics
 import torchmetrics.functional
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn import datasets, metrics
 
 step = 0
 
@@ -133,7 +136,6 @@ def check_metrics(loader, model, writer, device="cuda"):
 
     
 #function to upadate dataframe which contains all the mertics for each epoch  
-prediction = pd.DataFrame(columns=['Epoch_no','Accuracy','IoU','Dice','f1_score','Precision','Recall','Specificity'])
 def adding_metrics(epoch_no, accuracy, iou,dice, f1_score, precision, recall, specificity):
     global prediction
     new_row = {'Epoch_no': epoch_no, 
@@ -149,14 +151,9 @@ def adding_metrics(epoch_no, accuracy, iou,dice, f1_score, precision, recall, sp
 
 
 #plotting roc  curve for each epoch
-from sklearn import datasets, metrics
-import matplotlib.pyplot as plt
 def roc_curve_plot(y_true, y_preds):
     
     fpr, tpr, thresholds = metrics.roc_curve(y_true, y_preds)
-    print(fpr)
-    print(tpr)
-    print(thresholds)
     AUC_ROC = metrics.roc_auc_score(y_true, y_preds)
     # test_integral = np.trapz(tpr,fpr) #trapz is numpy integration
     print ("\nArea under the ROC curve: " +str(AUC_ROC))
@@ -185,8 +182,6 @@ def precision_recall_curve_plot(y_true, y_preds):
     
     
 #plotting curve for all the metrics
-import matplotlib.pyplot as plt
-import seaborn as sns
 def plotting_metrics(file_name):
     
     #accuracy
