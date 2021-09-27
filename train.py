@@ -50,7 +50,7 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, args, writer):
 
 
 def main(args):
-    global step
+    global step,prediction
     torch.cuda.empty_cache()
     
     if(os.path.isfile('metrics.csv')):
