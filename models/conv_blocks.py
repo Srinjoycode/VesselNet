@@ -1,7 +1,9 @@
 import torch.nn as nn
+import torchvision.transforms.functional as TF
+
 
 class DoubleConv(nn.Module):
-    def __init__(self, in_channels, out_channels, dilation = 1):
+    def __init__(self, in_channels, out_channels):
         super(DoubleConv, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels=in_channels, out_channels=out_channels,
@@ -17,12 +19,13 @@ class DoubleConv(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
+
     def forward(self, x):
         return self.conv(x)
 
 
 class SingleConv(nn.Module):
-    def __init__(self, in_channels, out_channels, dilation = 1):
+    def __init__(self, in_channels, out_channels):
         super(SingleConv, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels=in_channels, out_channels=out_channels,
@@ -31,6 +34,8 @@ class SingleConv(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
         )
+
     def forward(self, x):
-        x=self.conv(x)
+        x = self.conv(x)
+
         return x

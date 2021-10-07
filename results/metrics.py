@@ -119,11 +119,11 @@ def check_metrics(loader, model, writer, epoch_no, device="cuda"):
                          float(total_recall),
                          float(total_specificity)))
 
+    #Plotting the ROC and Precision vs recall curves
     preds = preds.numpy()
     y = y.numpy()
     preds = preds.ravel()
     y = y.ravel()
-
     roc_curve_plot(y, preds)
     precision_recall_curve_plot(y, preds)
 

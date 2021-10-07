@@ -9,7 +9,7 @@ from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
 
-from models.VesselNet import VesselNet
+from models.VesselNet import Vessel_net
 from results.metrics import check_metrics
 from utils import load_checkpoint, save_checkpoint, get_loaders, save_predictions_as_imgs
 
@@ -18,7 +18,7 @@ torch.cuda.empty_cache()
 step = 0
 
 
-
+# USIng Mixed precision training (FP-16 used )
 def train_fn(loader, model, optimizer, loss_fn, scaler, args, writer):
     global step
     loop = tqdm(loader)
@@ -54,9 +54,6 @@ def main(args):
     train_transform = A.Compose(
         [
             A.Resize(height=args.height, width=args.width),
-            A.Rotate(limit=35, p=1.0),
-            A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.1),
             A.Normalize(
                 mean=[0.0, 0.0, 0.0],
                 std=[1.0, 1.0, 1.0],
@@ -77,7 +74,7 @@ def main(args):
             ToTensorV2(),
         ],
     )
-    model = VesselNet(in_channels=3, out_channels=1).to(args.device)
+    model = Vessel_net(in_channels=3, out_channels=1).to(args.device)
 
     train_loader, val_loader = get_loaders(
         args.train_dir,
@@ -103,9 +100,9 @@ def main(args):
     writer.close()
     PREV_EPOCHS = 0
     if args.load_model:
-        load_checkpoint(torch.load(
+        PREV_EPOCHS = load_checkpoint(torch.load(
             args.load_weights),
-            model,optimizer=optimizer, epoch=PREV_EPOCHS, loss=loss_fn)
+            model)
 
     check_metrics(loader=val_loader, model=model, device=args.device,epoch_no=PREV_EPOCHS, writer={"writer": writer, "step": step})
 
@@ -133,7 +130,7 @@ def main(args):
             except:
                 print("Results directory already created")
                 pass
-            save_predictions_as_imgs(val_loader, model, folder="saved_images", device=args.device)
+            save_predictions_as_imgs(val_loader, model, folder="validation_saved_images", device=args.device)
         #CHECK METRICS
         check_metrics(val_loader, model, device=args.device,epoch_no=PREV_EPOCHS,writer={"writer": writer, "step": step})
 
