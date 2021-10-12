@@ -12,4 +12,4 @@ One way of detecting this disease is through **Blood Vessel Segmentation**. It i
 Blood Vessel Segmentation has gained significant recognition in the medical image processing. Many ML and deep learning models have been introduced to efficiently detect blood vessel by image segmentation. VesselNet is one such model.
 
 
-The VesselNet is inspired from the general Unet model along with the Bottleneck Attention Modules (BAM). 
+The VesselNet is inspired from the general Unet model along with the Convolutional Bottleneck Attention Modules (CBAM). 
