@@ -108,7 +108,7 @@ def main(args):
 
     scaler = torch.cuda.amp.GradScaler()
 
-    for epoch in range(PREV_EPOCHS,args.epochs):
+    for epoch in range(PREV_EPOCHS + 1 ,args.epochs):
         print("Epoch : " + str(epoch))
         train_fn(train_loader, model, optimizer, loss_fn, scaler, args, writer=writer)
 
