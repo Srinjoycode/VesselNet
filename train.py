@@ -103,17 +103,21 @@ def main(args):
         PREV_EPOCHS = load_checkpoint(torch.load(
             args.load_weights),
             model)
+        print("Loaded Model Metrics")
+        #print("Epoch Metrics are being printed for epoch num :"+str(PREV_EPOCHS))
+        #check_metrics(loader=val_loader, model=model, device=args.device,epoch_no=PREV_EPOCHS, writer={"writer": writer, "step": step},last_epoch= False,load_model= args.load_model)
 
-    check_metrics(loader=val_loader, model=model, device=args.device,epoch_no=PREV_EPOCHS, writer={"writer": writer, "step": step})
 
     scaler = torch.cuda.amp.GradScaler()
 
-    for epoch in range(PREV_EPOCHS,args.epochs):
+    for epoch in range(PREV_EPOCHS+1,args.epochs+1):
         print("Epoch : " + str(epoch))
+
         train_fn(train_loader, model, optimizer, loss_fn, scaler, args, writer=writer)
 
         # save model and predictions
         if epoch == (args.epochs - 1):
+            last_epoch = True
             checkpoint = {
                 "epoch": epoch,
                 "state_dict": model.state_dict(),
@@ -131,8 +135,11 @@ def main(args):
                 print("Results directory already created")
                 pass
             save_predictions_as_imgs(val_loader, model, folder="validation_saved_images", device=args.device)
+        else:
+            last_epoch = False
         #CHECK METRICS
-        check_metrics(val_loader, model, device=args.device,epoch_no=PREV_EPOCHS,writer={"writer": writer, "step": step})
+        print("Epoch Metrics are being printed for epoch num :" + str(epoch))
+        check_metrics(val_loader, model, device=args.device, epoch_no=int(epoch),writer={"writer": writer, "step": step},last_epoch=last_epoch,load_model= bool(args.load_model) )
 
         step += 1
 
@@ -147,18 +154,18 @@ if __name__ == "__main__":
     parser.add_argument("--height", default=256, type=int, help="Input Image Height")
     parser.add_argument("--width", default=512, type=int, help="Input Image width")
     parser.add_argument("--pin_memory", default=True, help="Pin Memory")
-    parser.add_argument("--load_model", default=False, help="Load Pretrained Model")
-    parser.add_argument("--train_dir", default="Datasets/CHASE/train/image", type=str,
+    parser.add_argument("--load_model",type=bool, default=False, help="Load Pretrained Model")
+    parser.add_argument("--train_dir", default="Datasets/CHASE/train/images", type=str,
                         help="Training images directory")
-    parser.add_argument("--train_mask", default="Datasets/CHASE/train/label", type=str,
+    parser.add_argument("--train_mask", default="Datasets/CHASE/train/labels", type=str,
                         help="Training mask directory")
-    parser.add_argument("--val_dir", default="Datasets/CHASE/validate/image",
+    parser.add_argument("--val_dir", default="Datasets/CHASE/validate/images",
                         help="Validation Image directory")
     parser.add_argument("--val_mask", type=str, default="Datasets/CHASE/validate/labels",
                         help="Validation label directory")
-    parser.add_argument("--test_dir", default="Datasets/CHASE/test/image", type=str,
+    parser.add_argument("--test_dir", default="Datasets/CHASE/test/images", type=str,
                         help="Test image directory")
-    parser.add_argument("--test_mask", default="Datasets/CHASE/test/label",
+    parser.add_argument("--test_mask", default="Datasets/CHASE/test/labels",
                         help="Test mask directory")
     parser.add_argument("--load_weights", default="trained.pth.tar", type=str, help="Add training weight path")
     args = parser.parse_args()
