@@ -15,8 +15,8 @@ files = os.listdir()
 no = 4
 
 #Displaying the original image
-Image1 = cv2.imread()
-Image1 = cv2.cvtColor(Image1, cv2.COLOR_BGR2RGB)
+Image0 = cv2.imread()
+Image0 = cv2.cvtColor(Image1, cv2.COLOR_BGR2RGB)
 fig.add_subplot(rows, columns, 2)
 plt.imshow(Image0)
 plt.axis('off')
