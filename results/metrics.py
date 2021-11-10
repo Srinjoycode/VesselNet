@@ -5,6 +5,8 @@ import torchmetrics.functional
 import pandas as pd
 from sklearn import datasets, metrics
 import matplotlib.pyplot as plt
+import seaborn as sns
+import os
 
 step = 0
 
@@ -54,7 +56,7 @@ def mcc(preds, y):
     return torchmetrics.functional.matthews_corrcoef(preds, y, num_classes=2)
 
 
-def check_metrics(loader, model, writer, epoch_no, device="cuda"):
+def check_metrics(loader, model, writer, epoch_no, last_epoch, load_model, device="cuda", ):
     global step
 
     # global variables definitions
@@ -112,21 +114,29 @@ def check_metrics(loader, model, writer, epoch_no, device="cuda"):
 
     print(f"Custom MCC metrics value:{total_mcc / len(loader)}")
 
-    print(adding_metrics(epoch_no, float(acc), float(total_iou_score),
-                         float(batch_dice_score),
-                         float(total_f1),
-                         float(total_precision),
-                         float(total_recall),
-                         float(total_specificity)))
+    print(adding_metrics(int(epoch_no), acc.detach().cpu().numpy(),
+                         (total_iou_score.detach().cpu().numpy() / len(loader)),
+                         (batch_dice_score.detach().cpu().numpy() / len(loader)),
+                         (total_f1.detach().cpu().numpy() / len(loader)),
+                         (total_precision.detach().cpu().numpy() / len(loader)),
+                         (total_recall.detach().cpu().numpy() / len(loader)),
+                         (total_specificity.detach().cpu().numpy() / len(loader)),
+                         (total_mcc.detach().cpu().numpy() / len(loader)),
+                         load_model
+                         )
+          )
 
-    #Plotting the ROC and Precision vs recall curves
-    preds = preds.numpy()
-    y = y.numpy()
-    preds = preds.ravel()
-    y = y.ravel()
+    # TODO CHECK FOR LAST EPOCH AND OPTIMIZE
+
+    # Plotting the ROC and Precision vs recall curves
+    preds = preds.numpy().ravel()
+    y = y.numpy().ravel()
+
+
     roc_curve_plot(y, preds)
     precision_recall_curve_plot(y, preds)
-
+    Results_dataframe = pd.read_csv('metrics.csv', index_col=False)
+    plotting_metrics(Results_dataframe)
     model.train()  # end of model evaluation
 
 
@@ -135,8 +145,12 @@ prediction = pd.DataFrame(
     columns=['Epoch_no', 'Accuracy', 'IoU', 'Dice', 'f1_score', 'Precision', 'Recall', 'Specificity'])
 
 
-def adding_metrics(epoch_no, accuracy, iou, dice, f1_score, precision, recall, specificity):
+def adding_metrics(epoch_no, accuracy, iou, dice, f1_score, precision, recall, specificity, mcc, load_model):
+
     global prediction
+    if bool(load_model):
+        prediction = pd.read_csv('metrics.csv', index_col=False)
+
     new_row = {'Epoch_no': epoch_no,
                'Accuracy': accuracy,
                'IoU': iou,
@@ -144,8 +158,11 @@ def adding_metrics(epoch_no, accuracy, iou, dice, f1_score, precision, recall, s
                'f1_score': f1_score,
                'Precision': precision,
                'Recall': recall,
-               'Specificity': specificity}
+               'Specificity': specificity,
+               'MCC': mcc,
+               }
     prediction = prediction.append(new_row, ignore_index=True)
+    convert_to_csv(prediction)
     return prediction
 
 
@@ -160,11 +177,14 @@ def roc_curve_plot(y_true, y_preds):
 
     print("\nArea under the ROC curve: " + str(AUC_ROC))
     roc_curve = plt.figure()
-    plt.plot(fpr, tpr, '-', label='Area Under the Curve (AUC = %0.4f)' % AUC_ROC)
+    plt.plot(fpr, tpr, '-', label='Area Under the Curve (AUC = %0.4f)' % AUC_ROC, )
     plt.title('ROC curve')
     plt.xlabel("FPR (False Positive Rate)")
     plt.ylabel("TPR (True Positive Rate)")
     plt.legend(loc="lower right")
+
+    plt.savefig('metrics_plots/roc_curve_plot.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
 
 # plotting presicion-recall for each epoch
@@ -180,74 +200,99 @@ def precision_recall_curve_plot(y_true, y_preds):
     plt.xlabel("Recall")
     plt.ylabel("Precision")
     plt.legend(loc="lower right")
-
+    plt.savefig('metrics_plots/precision_recall_curve_plot.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
 # plotting curve for all the metrics
 def plotting_metrics(Results_dataframe):
+    try:
+        os.mkdir('metrics_plots')
+
+    except:
+        print(" Metrics Plots directory already created")
+        pass
+
     # accuracy
     fig, ax = plt.subplots(figsize=(8, 8))
-    Results_dataframe['Accuracy'].plot.line(color='red')
+    sns.lineplot(x='Epoch_no',y='Accuracy',data=Results_dataframe,color='blue')
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
-    plt.title("Accuracy")
-    plt.show()
-    plt.savefig('accuracy.png', dpi=300, bbox_inches='tight')
+    plt.title("Accuracy Graph")
+
+    plt.savefig('metrics_plots/accuracy.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
     # IOU
     fig, ax = plt.subplots(figsize=(8, 8))
-    Results_dataframe['IoU'].plot.line(color='blue')
+    sns.lineplot(x='Epoch_no',y='IoU',data=Results_dataframe,color='green')
     plt.xlabel("Epoch")
     plt.ylabel("IoU")
-    plt.title("IoU")
-    plt.show()
-    plt.savefig('IoU.png', dpi=300, bbox_inches='tight')
+    plt.title("IoU Score")
+
+    plt.savefig('metrics_plots/IoU.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
     # Dice
     fig, ax = plt.subplots(figsize=(8, 8))
-    Results_dataframe['Dice'].plot.line(color='green')
+    sns.lineplot(x='Epoch_no',y='Dice',data=Results_dataframe,color='black')
     plt.xlabel("Epoch")
     plt.ylabel("Dice")
     plt.title("Dice")
-    plt.show()
-    plt.savefig('dice.png', dpi=300, bbox_inches='tight')
+
+    plt.savefig('metrics_plots/dice.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
     # f1_score
     fig, ax = plt.subplots(figsize=(8, 8))
-    Results_dataframe['f1_score'].plot.line(color='blue')
+    sns.lineplot(x='Epoch_no',y='f1_score',data=Results_dataframe,color='darkkhaki')
     plt.xlabel("Epoch")
-    plt.ylabel("f1_score")
-    plt.title("f1_score")
-    plt.show()
-    plt.savefig('f1_score.png', dpi=300, bbox_inches='tight')
+    plt.ylabel("F1 score")
+    plt.title("F1 score")
+
+    plt.savefig('metrics_plots/f1_score.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
     # Precision
     fig, ax = plt.subplots(figsize=(8, 8))
-    Results_dataframe['Precision'].plot.line(color='orange')
+    sns.lineplot(x='Epoch_no',y='Precision',data=Results_dataframe,color='purple')
     plt.xlabel("Epoch")
     plt.ylabel("Precision")
     plt.title("Precision")
-    plt.show()
-    plt.savefig('precision.png', dpi=300, bbox_inches='tight')
+
+    plt.savefig('metrics_plots/precision.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
     # Recall
     fig, ax = plt.subplots(figsize=(8, 8))
-    Results_dataframe['Recall'].plot.line(color='purple')
+    sns.lineplot(x='Epoch_no',y='Recall',data=Results_dataframe,color='brown')
     plt.xlabel("Epoch")
     plt.ylabel("Recall")
     plt.title("Recall")
-    plt.show()
-    plt.savefig('recall.png', dpi=300, bbox_inches='tight')
+
+    plt.savefig('metrics_plots/recall.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
     # Specificity
     fig, ax = plt.subplots(figsize=(8, 8))
-    Results_dataframe['Specificity'].plot.line(color='red')
+    sns.lineplot(x='Epoch_no',y='Specificity',data=Results_dataframe,color='red')
     plt.xlabel("Epoch")
     plt.ylabel("Specificity")
     plt.title("Specificity")
-    plt.show()
-    plt.savefig('specificity.png', dpi=300, bbox_inches='tight')
+
+    plt.savefig('metrics_plots/specificity.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+    # MCC
+    fig, ax = plt.subplots(figsize=(8, 8))
+    sns.lineplot(x='Epoch_no', y='MCC', data=Results_dataframe,color='orange')
+    plt.xlabel("Epoch")
+    plt.ylabel("MCC")
+    plt.title("MCC Score")
+
+    plt.savefig('metrics_plots/MCC.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
 
 # function to convert it to csv file
 def convert_to_csv(prediction):
-    prediction.to_csv(r'./metrics.csv', header=True)
+    prediction.to_csv(r'./metrics.csv', header=True, index=False)

@@ -6,7 +6,7 @@ import torch
 import numpy as np
 from torch.utils.data import Dataset
 
-from models.VesselNet import VesselNet
+from models.VesselNet import Vessel_net
 from PIL import Image
 
 #TODO DRIVE testloader and test script
@@ -52,7 +52,7 @@ def test(args):
 
 
     print("Loading model")
-    model = VesselNet()
+    model = Vessel_net()
     model.to(device)
     print("Model loaded")
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     parser.add_argument("--mask_dir", type=str, required=True, help="Relative path to test masks(initially blank)")
     parser.add_argument("--weights", default="trained.pth.tar", type=str,
                         help="Relative path to the trained model path")
-    parser.add_argument("--device", default="cuda", help="cdua or cpu")
+    parser.add_argument("--device", default="cuda", help="cuda or cpu")
     args = parser.parse_args()
 
     test(args)
