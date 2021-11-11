@@ -118,7 +118,7 @@ def main(args):
         train_fn(train_loader, model, optimizer, loss_fn, scaler, args, writer=writer)
 
         # save model and predictions
-        if epoch == (args.epochs - 1):
+        if epoch == (args.epochs):
             last_epoch = True
             checkpoint = {
                 "epoch": epoch,
