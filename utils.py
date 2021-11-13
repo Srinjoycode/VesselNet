@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from Datasets.dataloader import IMG_Dataset
 
 
-#TODO add a dataloader for DRIVE dataset
+
 def get_loaders(
         train_dir,
         train_mask_dir,

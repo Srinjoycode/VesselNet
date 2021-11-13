@@ -20,6 +20,7 @@ step = 0
 
 # USIng Mixed precision training (FP-16 used )
 def train_fn(loader, model, optimizer, loss_fn, scaler, args, writer):
+
     global step
     loop = tqdm(loader)
     for batch_idx, (data, targets) in enumerate(loop):
@@ -98,7 +99,11 @@ def main(args):
     images, _ = next(iter(train_loader))
     writer.add_graph(model, images.to(args.device))
     writer.close()
+
+
     PREV_EPOCHS = 0
+
+
     if args.load_model:
         PREV_EPOCHS = load_checkpoint(torch.load(
             args.load_weights),
@@ -126,8 +131,9 @@ def main(args):
                 "optimizer": optimizer.state_dict(),
                 "loss": loss_fn,
             }
-            # TODO Add args for saving checkpoint script file path
-            checkpoint_name = './VesselNetChase_Epochs' + str(epoch) + '_CHASE.pth.tar'
+
+
+            checkpoint_name = './'+args.model_name+'_'+args.dataset_name+'_Epochs_' + str(epoch) + '_MODEL.pth.tar'
             save_checkpoint(checkpoint, checkpoint_name)
             try:
                 os.mkdir('validation_saved_images')
@@ -148,6 +154,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--model_name", default="VesselNet", type=str, help="Name of the saved model")
+    parser.add_argument("--dataset_name", default="CHASE", type=str, help="Name of the data set used")
     parser.add_argument("--lr", default=1e-4, type=float, help="Learning Rate for training")
     parser.add_argument("--batch_size", default=32, type=int, help="Batch Size for training")
     parser.add_argument("--device", default="cuda", help="cuda or cpu")

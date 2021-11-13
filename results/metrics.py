@@ -77,22 +77,22 @@ def check_metrics(loader, model, writer, epoch_no, last_epoch, load_model, devic
             y = y.to(device).unsqueeze(1)  # storing the original mask
             # converting the predictions to a binary map
             preds = torch.sigmoid(model(x))
-            preds = (preds > 0.5).float()
 
-            batch_num_pixels += num_total_pixels(preds)
-            y, preds = y.cpu(), preds.cpu()
 
-            batch_num_correct += num_correct_pixels(preds, y)
-            batch_dice_score += dice_score(preds, y)
-            total_iou_score += iou(preds, y)
+            batch_num_pixels += num_total_pixels((preds > 0.5).float())
+            y, preds = y.cpu(), (preds > 0.5).float().cpu()
 
-            preds = preds.type(torch.int)
+            batch_num_correct += num_correct_pixels((preds > 0.5).float(), y)
+            batch_dice_score += dice_score((preds > 0.5).float(), y)
+            total_iou_score += iou((preds > 0.5).float(), y)
+
+
             y = y.type(torch.int)
-            total_f1 += f1(preds, y)
-            total_precision += precision(preds, y)
-            total_recall += recall(preds, y)
-            total_specificity += specificity(preds, y)
-            total_mcc += mcc(preds, y)
+            total_f1 += f1((preds > 0.5).float().type(torch.int), y)
+            total_precision += precision((preds > 0.5).float().type(torch.int), y)
+            total_recall += recall((preds > 0.5).float().type(torch.int), y)
+            total_specificity += specificity((preds > 0.5).float().type(torch.int), y)
+            total_mcc += mcc((preds > 0.5).float().type(torch.int), y)
 
     acc = accuracy_score(batch_num_correct, batch_num_pixels)
     writer["writer"].add_scalar("Training Accuracy", acc, global_step=step)
@@ -126,7 +126,7 @@ def check_metrics(loader, model, writer, epoch_no, last_epoch, load_model, devic
                          )
           )
 
-    # TODO CHECK FOR LAST EPOCH AND OPTIMIZE
+
 
     # Plotting the ROC and Precision vs recall curves
     preds = preds.numpy().ravel()
