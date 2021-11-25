@@ -15,12 +15,14 @@ from utils import load_checkpoint, save_checkpoint, get_loaders, save_prediction
 
 torch.cuda.empty_cache()
 
+train_loss = 10000
+
 step = 0
 
 
 # USIng Mixed precision training (FP-16 used )
 def train_fn(loader, model, optimizer, loss_fn, scaler, args, writer):
-
+    global train_loss
     global step
     loop = tqdm(loader)
     for batch_idx, (data, targets) in enumerate(loop):
@@ -30,21 +32,21 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, args, writer):
         # forward
         with torch.cuda.amp.autocast():
             predictions = model(data)
-            loss = loss_fn(predictions, targets)
+            train_loss = loss_fn(predictions, targets)
 
         # backward
         optimizer.zero_grad()
-        scaler.scale(loss).backward()
+        scaler.scale(train_loss).backward()
         scaler.step(optimizer)
         scaler.update()
 
         img_grid = torchvision.utils.make_grid(data)
         writer.add_image("Input_image", img_grid)
         # writer.add_histogram("fc1", model.fc1.weight)
-        writer.add_scalar("Training Loss", loss, global_step=step)
+        writer.add_scalar("Training Loss", train_loss, global_step=step)
 
         # update tqdm loop
-        loop.set_postfix(loss=loss.item())
+        loop.set_postfix(loss=train_loss.item())
 
         step += 1
 
@@ -147,8 +149,18 @@ def main(args):
             last_epoch = False
         #CHECK METRICS
         print("Epoch Metrics are being printed for epoch num :" + str(epoch))
-        check_metrics(val_loader, model, device=args.device, epoch_no=int(epoch),writer={"writer": writer, "step": step},last_epoch=last_epoch,load_model= bool(args.load_model) )
 
+        check_metrics(train_loader,
+                      val_loader,
+                      model,
+                      device=args.device,
+                      epoch_no=int(epoch),
+                      last_epoch=last_epoch,
+                      loss_fn=loss_fn,
+                      train_loss=train_loss.item(),
+                      load_model=bool(args.load_model),
+                      writer={"writer": writer, "step": step}
+                      )
         step += 1
 
 

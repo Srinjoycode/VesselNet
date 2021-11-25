@@ -135,3 +135,8 @@ dmypy.json
 Datasets/CHASE
 Datasets/DRIVE
 Datasets/mini_datasets/
+/overfit_local_training_results.rar
+/CHASE_Results_Overfit_batch4_256res/
+/DRIVE Results_overfit_batch4_256res/
+/runs/
+/validation_saved_images/
