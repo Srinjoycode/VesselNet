@@ -93,7 +93,7 @@ def main(args):
 
     # since no sigmoid on the output of the model we use with logits
     loss_fn = nn.BCEWithLogitsLoss()  # for multiclass classification use cross entropy loss and change  #out_channels
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr,weight_decay=1e-04)
     writer = SummaryWriter(
         f"runs/Dataset/Minibatch {args.batch_size} LR {args.lr}"
     )

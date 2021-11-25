@@ -11,13 +11,13 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Defining the main Encoder decoder model using the double convolution class
 class Vessel_net(nn.Module):
-    def __init__(self, in_channels=3, out_channels=1, features=[32,64,128]):
+    def __init__(self, in_channels=3, out_channels=1, features=[32, 64, 128]):
         super(Vessel_net, self).__init__()
         self.downs = nn.ModuleList()
         self.ups = nn.ModuleList()
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.singleconv1 = SingleConv(in_channels=features[-1], out_channels=features[-1]*2)
-        self.singleconv2 = SingleConv(in_channels=features[-1]*2, out_channels=features[-1]*2)
+        self.singleconv1 = SingleConv(in_channels=features[-1], out_channels=features[-1] * 2)
+        self.singleconv2 = SingleConv(in_channels=features[-1] * 2, out_channels=features[-1] * 2)
 
         # encoder part (down part)
         for feature in features:
@@ -47,11 +47,10 @@ class Vessel_net(nn.Module):
             skip_connections.append(x)
             x = self.pool(x)
 
-
-        x=self.singleconv1(x)
+        x = self.singleconv1(x)
         x = self.bottleneck(x)
-        x=self.singleconv2(x)
-        #print('size before entering the decoder ' + str(x.size()))
+        x = self.singleconv2(x)
+        # print('size before entering the decoder ' + str(x.size()))
         # reverse the skip connection list
         skip_connections = skip_connections[::-1]
 
@@ -64,13 +63,12 @@ class Vessel_net(nn.Module):
 
             concat_skip = torch.cat((skip_connection, x), dim=1)
             x = self.ups[idx + 1](concat_skip)
-        x=self.final_conv(x)
+        x = self.final_conv(x)
         return x
 
 
 def test():
-
-    x = torch.randn((8, 3, 584, 584)).to(device)
+    x = torch.randn((1, 3, 584, 584)).to(device)
     model = Vessel_net(in_channels=3, out_channels=1).to(device)
     preds = model(x).to(device)
     total_params = sum(p.numel() for p in model.parameters())
