@@ -57,9 +57,9 @@ def mcc(preds, y):
     return torchmetrics.functional.matthews_corrcoef(preds, y, num_classes=2)
 
 
-def check_metrics(train_loader, val_loader, model,writer , epoch_no, last_epoch, loss_fn, train_loss, load_model, device="cuda", ):
+def check_metrics(train_loader, val_loader, model,writer , epoch_no, last_epoch, loss_fn, train_loss, load_model, device="cuda",metrics_dir ):
     global step
-
+    global metrics_dir
     # global variables definitions
     batch_num_correct = 0
     batch_num_pixels = 0
@@ -202,7 +202,7 @@ def check_metrics(train_loader, val_loader, model,writer , epoch_no, last_epoch,
     # Plotting the ROC and Precision vs recall curves
     preds = preds.numpy().ravel()
     y = y.numpy().ravel()
-    Results_dataframe = pd.read_csv('./metrics.csv', index_col=False)
+    Results_dataframe = pd.read_csv(metrics_dir, index_col=False)
     plotting_metrics(Results_dataframe)
     plot_loss(Results_dataframe)
     roc_curve_plot(y, preds)
@@ -222,7 +222,7 @@ def adding_metrics(epoch_no, train_accuracy, val_accuracy, train_iou, val_iou, t
 
     global prediction
     if bool(load_model):
-        prediction = pd.read_csv('./metrics.csv', index_col=False)
+        prediction = pd.read_csv(metrics_dir, index_col=False)
 
     new_row = {'Epoch_no': epoch_no,
 
@@ -409,12 +409,12 @@ def plot_loss(dataframe):
     plt.close()
 
 # function to convert it to csv file
-def convert_to_csv(prediction):
-    prediction.to_csv(r'./metrics.csv', header=True, index=False)
+def convert_to_csv(prediction,metrics_dir):
+    prediction.to_csv(metrics_dir, header=True, index=False)
 
 if __name__ == "__main__":
     # Test Metric Plotting
 
-    Results_dataframe = pd.read_csv('./metrics.csv', index_col=False)
+    Results_dataframe = pd.read_csv(metrics_dir, index_col=False)
     # plotting_metrics(Results_dataframe)
     plot_loss(Results_dataframe)

@@ -159,7 +159,8 @@ def main(args):
                       loss_fn=loss_fn,
                       train_loss=train_loss.item(),
                       load_model=bool(args.load_model),
-                      writer={"writer": writer, "step": step}
+                      writer={"writer": writer, "step": step},
+                      metrics_dir=args.metrics_csv_dir
                       )
         step += 1
 
@@ -189,7 +190,8 @@ if __name__ == "__main__":
                         help="Test image directory")
     parser.add_argument("--test_mask", default="Datasets/CHASE/test/labels",
                         help="Test mask directory")
-    parser.add_argument("--load_weights", default="trained.pth.tar", type=str, help="Add training weight path")
+    parser.add_argument("--load_weights", default="trained.pth.tar", type=str, help="Add training weight path.")
+    parser.add_argument("--metrics_csv_dir",default="./metrics.csv",type=str,help="File path to the metrics csv file.")
     args = parser.parse_args()
 
     main(args)
