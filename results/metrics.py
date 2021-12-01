@@ -57,12 +57,19 @@ def mcc(preds, y):
     return torchmetrics.functional.matthews_corrcoef(preds, y, num_classes=2)
 
 
-def check_metrics(train_loader, val_loader, model,writer , epoch_no, last_epoch, loss_fn, train_loss, load_model, device="cuda",metrics_dir='./metrics.csv' ):
+def make_csv_copy(metrics_dir, prev_metrics_csv_dir):
+    metrics_df_old = pd.read_csv(prev_metrics_csv_dir, index_col=False)
+    convert_to_csv(metrics_df_old, metrics_dir)
+
+
+def check_metrics(train_loader, val_loader, model, writer, epoch_no,
+                  last_epoch, loss_fn, train_loss, load_model,
+                  device="cuda", metrics_dir='./new_metrics.csv',
+                  prev_metrics_csv_dir='./prev_metric.csv'):
+    # global variables definitions
     global step
     global metrics_dir_path
     metrics_dir_path = metrics_dir
-
-    # global variables definitions
     batch_num_correct = 0
     batch_num_pixels = 0
     val_batch_dice_score = 0
@@ -72,6 +79,10 @@ def check_metrics(train_loader, val_loader, model,writer , epoch_no, last_epoch,
     val_total_f1 = 0
     val_total_specificity = 0
     val_total_mcc = 0
+
+    if (not os.path.isfile(metrics_dir)):
+        make_csv_copy(metrics_dir, prev_metrics_csv_dir)
+
     # start of model evaluation
     model.eval()
     with torch.no_grad():
@@ -89,7 +100,6 @@ def check_metrics(train_loader, val_loader, model,writer , epoch_no, last_epoch,
             batch_num_correct += num_correct_pixels((preds > 0.5).float(), y)
             val_batch_dice_score += dice_score((preds > 0.5).float(), y)
             val_total_iou_score += iou((preds > 0.5).float(), y)
-
 
             y = y.type(torch.int)
             val_total_f1 += f1((preds > 0.5).float().type(torch.int), y)
@@ -198,7 +208,7 @@ def check_metrics(train_loader, val_loader, model,writer , epoch_no, last_epoch,
                          val_loss=val_loss,
 
                          load_model=load_model,
-                        metrics_dir=metrics_dir,
+                         metrics_dir=metrics_dir,
                          )
           )
 
@@ -219,10 +229,12 @@ prediction = pd.DataFrame(
              'Val_Specificity', 'Train_Accuracy', 'Train_IoU', 'Train_Dice', 'Train_f1_scorVal_e', 'Train_Precision',
              'Train_Recall', 'Train_Specificity'])
 
+
 # For adding Metircs to CSV
 
-def adding_metrics(epoch_no, train_accuracy, val_accuracy, train_iou, val_iou, train_dice, val_dice, train_f1_score, val_f1_score, train_precision, val_precision, train_recall, val_recall, train_specificity, val_specificity, train_mcc, val_mcc, train_loss, val_loss, load_model,metrics_dir):
-
+def adding_metrics(epoch_no, train_accuracy, val_accuracy, train_iou, val_iou, train_dice, val_dice, train_f1_score,
+                   val_f1_score, train_precision, val_precision, train_recall, val_recall, train_specificity,
+                   val_specificity, train_mcc, val_mcc, train_loss, val_loss, load_model, metrics_dir):
     global prediction
     if bool(load_model):
         prediction = pd.read_csv(metrics_dir, index_col=False)
@@ -248,10 +260,10 @@ def adding_metrics(epoch_no, train_accuracy, val_accuracy, train_iou, val_iou, t
                'Train_MCC': train_mcc,
 
                'Train_loss': train_loss,
-               'Val_loss':val_loss,
+               'Val_loss': val_loss,
                }
     prediction = prediction.append(new_row, ignore_index=True)
-    convert_to_csv(prediction,metrics_dir)
+    convert_to_csv(prediction, metrics_dir)
     return prediction
 
 
@@ -292,6 +304,7 @@ def precision_recall_curve_plot(y_true, y_preds):
     plt.savefig('./metrics_plots/precision_recall_curve_plot.png', dpi=300, bbox_inches='tight')
     plt.close()
 
+
 # plotting curve for all the metrics
 def plotting_metrics(Results_dataframe):
     try:
@@ -303,117 +316,120 @@ def plotting_metrics(Results_dataframe):
 
     # accuracy
     fig, ax = plt.subplots(figsize=(8, 8))
-    sns.lineplot(x='Epoch_no',y='Train_Accuracy',data=Results_dataframe,color='red')
-    sns.lineplot(x='Epoch_no',y='Val_Accuracy',data=Results_dataframe,color='blue')
+    sns.lineplot(x='Epoch_no', y='Train_Accuracy', data=Results_dataframe, color='red')
+    sns.lineplot(x='Epoch_no', y='Val_Accuracy', data=Results_dataframe, color='blue')
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
     plt.title("Accuracy Graph")
-    plt.legend(["Train", "Val"], loc = "upper right")
+    plt.legend(["Train", "Val"], loc="upper right")
 
     plt.savefig('./metrics_plots/accuracy.png', dpi=300, bbox_inches='tight')
     plt.close()
 
     # IOU
     fig, ax = plt.subplots(figsize=(8, 8))
-    sns.lineplot(x='Epoch_no',y='Train_IoU',data=Results_dataframe,color='red')
-    sns.lineplot(x='Epoch_no',y='Val_IoU',data=Results_dataframe,color='blue')
+    sns.lineplot(x='Epoch_no', y='Train_IoU', data=Results_dataframe, color='red')
+    sns.lineplot(x='Epoch_no', y='Val_IoU', data=Results_dataframe, color='blue')
     plt.xlabel("Epoch")
     plt.ylabel("IoU")
     plt.title("IoU Score")
-    plt.legend(["Train", "Val"], loc = "upper right")
+    plt.legend(["Train", "Val"], loc="upper right")
 
     plt.savefig('./metrics_plots/IoU.png', dpi=300, bbox_inches='tight')
     plt.close()
 
     # Dice
     fig, ax = plt.subplots(figsize=(8, 8))
-    sns.lineplot(x='Epoch_no',y='Train_Dice',data=Results_dataframe,color='red')
-    sns.lineplot(x='Epoch_no',y='Val_Dice',data=Results_dataframe,color='blue')
+    sns.lineplot(x='Epoch_no', y='Train_Dice', data=Results_dataframe, color='red')
+    sns.lineplot(x='Epoch_no', y='Val_Dice', data=Results_dataframe, color='blue')
     plt.xlabel("Epoch")
     plt.ylabel("Dice")
     plt.title("Dice")
-    plt.legend(["Train", "Val"], loc = "upper right")
+    plt.legend(["Train", "Val"], loc="upper right")
 
     plt.savefig('./metrics_plots/dice.png', dpi=300, bbox_inches='tight')
     plt.close()
 
     # f1_score
     fig, ax = plt.subplots(figsize=(8, 8))
-    sns.lineplot(x='Epoch_no',y='Train_f1_score',data=Results_dataframe,color='red')
-    sns.lineplot(x='Epoch_no',y='Val_f1_score',data=Results_dataframe,color='blue')
+    sns.lineplot(x='Epoch_no', y='Train_f1_score', data=Results_dataframe, color='red')
+    sns.lineplot(x='Epoch_no', y='Val_f1_score', data=Results_dataframe, color='blue')
     plt.xlabel("Epoch")
     plt.ylabel("F1 score")
     plt.title("F1 score")
-    plt.legend(["Train", "Val"], loc = "upper right")
+    plt.legend(["Train", "Val"], loc="upper right")
 
     plt.savefig('./metrics_plots/f1_score.png', dpi=300, bbox_inches='tight')
     plt.close()
 
     # Precision
     fig, ax = plt.subplots(figsize=(8, 8))
-    sns.lineplot(x='Epoch_no',y='Train_Precision',data=Results_dataframe,color='red')
-    sns.lineplot(x='Epoch_no',y='Val_Precision',data=Results_dataframe,color='blue')
+    sns.lineplot(x='Epoch_no', y='Train_Precision', data=Results_dataframe, color='red')
+    sns.lineplot(x='Epoch_no', y='Val_Precision', data=Results_dataframe, color='blue')
     plt.xlabel("Epoch")
     plt.ylabel("Precision")
     plt.title("Precision")
-    plt.legend(["Train", "Val"], loc = "upper right")
+    plt.legend(["Train", "Val"], loc="upper right")
 
     plt.savefig('./metrics_plots/precision.png', dpi=300, bbox_inches='tight')
     plt.close()
-    plt.legend(["Train", "Val"], loc = "upper right")
+    plt.legend(["Train", "Val"], loc="upper right")
 
     # Recall
     fig, ax = plt.subplots(figsize=(8, 8))
-    sns.lineplot(x='Epoch_no',y='Train_Recall',data=Results_dataframe,color='red')
-    sns.lineplot(x='Epoch_no',y='Val_Recall',data=Results_dataframe,color='blue')
+    sns.lineplot(x='Epoch_no', y='Train_Recall', data=Results_dataframe, color='red')
+    sns.lineplot(x='Epoch_no', y='Val_Recall', data=Results_dataframe, color='blue')
     plt.xlabel("Epoch")
     plt.ylabel("Recall")
     plt.title("Recall")
-    plt.legend(["Train", "Val"], loc = "upper right")
+    plt.legend(["Train", "Val"], loc="upper right")
 
     plt.savefig('./metrics_plots/recall.png', dpi=300, bbox_inches='tight')
     plt.close()
 
     # Specificity
     fig, ax = plt.subplots(figsize=(8, 8))
-    sns.lineplot(x='Epoch_no',y='Train_Specificity',data=Results_dataframe,color='red')
-    sns.lineplot(x='Epoch_no',y='Val_Specificity',data=Results_dataframe,color='blue')
+    sns.lineplot(x='Epoch_no', y='Train_Specificity', data=Results_dataframe, color='red')
+    sns.lineplot(x='Epoch_no', y='Val_Specificity', data=Results_dataframe, color='blue')
     plt.xlabel("Epoch")
     plt.ylabel("Specificity")
     plt.title("Specificity")
-    plt.legend(["Train", "Val"], loc = "upper right")
+    plt.legend(["Train", "Val"], loc="upper right")
 
     plt.savefig('./metrics_plots/specificity.png', dpi=300, bbox_inches='tight')
     plt.close()
 
     # MCC
     fig, ax = plt.subplots(figsize=(8, 8))
-    sns.lineplot(x='Epoch_no', y='Train_MCC', data=Results_dataframe,color='red')
-    sns.lineplot(x='Epoch_no', y='Val_MCC', data=Results_dataframe,color='blue')
+    sns.lineplot(x='Epoch_no', y='Train_MCC', data=Results_dataframe, color='red')
+    sns.lineplot(x='Epoch_no', y='Val_MCC', data=Results_dataframe, color='blue')
     plt.xlabel("Epoch")
     plt.ylabel("MCC")
     plt.title("MCC Score")
-    plt.legend(["Train", "Val"], loc = "upper right")
+    plt.legend(["Train", "Val"], loc="upper right")
 
     plt.savefig('./metrics_plots/MCC.png', dpi=300, bbox_inches='tight')
     plt.close()
+
 
 # Plot Training and Validation loss vs EPOCHS
 def plot_loss(dataframe):
     # IOU
     fig, ax = plt.subplots(figsize=(8, 8))
-    sns.lineplot(x='Epoch_no',y='Train_loss',data=dataframe,color='red')
-    sns.lineplot(x='Epoch_no',y='Val_loss',data=dataframe,color='blue')
+    sns.lineplot(x='Epoch_no', y='Train_loss', data=dataframe, color='red')
+    sns.lineplot(x='Epoch_no', y='Val_loss', data=dataframe, color='blue')
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.title("LOSS vs EPOCH")
-    plt.legend(["Train", "Val"], loc = "upper right")
+    plt.legend(["Train", "Val"], loc="upper right")
     plt.savefig('./metrics_plots/loss.png', dpi=300, bbox_inches='tight')
     plt.close()
 
+
 # function to convert it to csv file
-def convert_to_csv(prediction,metrics_dir):
+def convert_to_csv(prediction, metrics_dir):
     prediction.to_csv(metrics_dir, header=True, index=False)
+
 
 if __name__ == "__main__":
     # Test Metric Plotting
