@@ -68,7 +68,8 @@ class Vessel_net(nn.Module):
 
 
 def test():
-    x = torch.randn((1, 3, 584, 584)).to(device)
+    device='cpu'
+    x = torch.randn((1, 3, 1280, 960)).to(device)
     model = Vessel_net(in_channels=3, out_channels=1).to(device)
     preds = model(x).to(device)
     total_params = sum(p.numel() for p in model.parameters())

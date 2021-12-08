@@ -111,8 +111,7 @@ def main(args):
             args.load_weights),
             model)
         print("Loaded Model Metrics")
-        #print("Epoch Metrics are being printed for epoch num :"+str(PREV_EPOCHS))
-        #check_metrics(loader=val_loader, model=model, device=args.device,epoch_no=PREV_EPOCHS, writer={"writer": writer, "step": step},last_epoch= False,load_model= args.load_model)
+
 
 
     scaler = torch.cuda.amp.GradScaler()
@@ -150,19 +149,19 @@ def main(args):
         #CHECK METRICS
         print("Epoch Metrics are being printed for epoch num :" + str(epoch))
 
-        check_metrics(train_loader,
-                      val_loader,
-                      model,
-                      device=args.device,
-                      epoch_no=int(epoch),
-                      last_epoch=last_epoch,
-                      loss_fn=loss_fn,
-                      train_loss=train_loss.item(),
-                      load_model=bool(args.load_model),
-                      writer={"writer": writer, "step": step},
-                      metrics_dir=args.metrics_csv_dir,
-                      prev_metrics_csv_dir=args.prev_metrics_csv_dir
-                      )
+        # check_metrics(train_loader,
+        #               val_loader,
+        #               model,
+        #               device=args.device,
+        #               epoch_no=int(epoch),
+        #               last_epoch=last_epoch,
+        #               loss_fn=loss_fn,
+        #               train_loss=train_loss.item(),
+        #               load_model=bool(args.load_model),
+        #               writer={"writer": writer, "step": step},
+        #               metrics_dir=args.metrics_csv_dir,
+        #               prev_metrics_csv_dir=args.prev_metrics_csv_dir
+        #               )
         step += 1
 
 
@@ -179,17 +178,17 @@ if __name__ == "__main__":
     parser.add_argument("--width", default=512, type=int, help="Input Image width")
     parser.add_argument("--pin_memory", default=True, help="Pin Memory")
     parser.add_argument("--load_model",type=bool, default=False, help="Load Pretrained Model")
-    parser.add_argument("--train_dir", default="Datasets/CHASE/train/images", type=str,
+    parser.add_argument("--train_dir", default="Datasets/DRIVE/DRIVE_1000/train/image", type=str,
                         help="Training images directory")
-    parser.add_argument("--train_mask", default="Datasets/CHASE/train/labels", type=str,
+    parser.add_argument("--train_mask", default="Datasets/DRIVE/DRIVE_1000/train/label", type=str,
                         help="Training mask directory")
-    parser.add_argument("--val_dir", default="Datasets/CHASE/validate/images",
+    parser.add_argument("--val_dir", default="Datasets/DRIVE/DRIVE_1000/validate/image",
                         help="Validation Image directory")
-    parser.add_argument("--val_mask", type=str, default="Datasets/CHASE/validate/labels",
+    parser.add_argument("--val_mask", type=str, default="Datasets/DRIVE/DRIVE_1000/validate/label",
                         help="Validation label directory")
-    parser.add_argument("--test_dir", default="Datasets/CHASE/test/images", type=str,
+    parser.add_argument("--test_dir", default="Datasets/DRIVE/DRIVE_1000/test/image", type=str,
                         help="Test image directory")
-    parser.add_argument("--test_mask", default="Datasets/CHASE/test/labels",
+    parser.add_argument("--test_mask", default="Datasets/DRIVE/DRIVE_1000/test/label",
                         help="Test mask directory")
     parser.add_argument("--load_weights", default="trained.pth.tar", type=str, help="Add training weight path.")
     parser.add_argument("--metrics_csv_dir",default="./prev_metrics_3epochs.csv",type=str,help="File path to the metrics csv file.")
