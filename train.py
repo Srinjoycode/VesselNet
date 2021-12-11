@@ -191,8 +191,8 @@ if __name__ == "__main__":
     parser.add_argument("--test_mask", default="Datasets/DRIVE/DRIVE_1000/test/label",
                         help="Test mask directory")
     parser.add_argument("--load_weights", default="trained.pth.tar", type=str, help="Add training weight path.")
-    parser.add_argument("--metrics_csv_dir",default="./prev_metrics_3epochs.csv",type=str,help="File path to the metrics csv file.")
-    parser.add_argument("--prev_metrics_csv_dir", default="./prev_metrics_3epochs.csv", type=str,
+    parser.add_argument("--metrics_csv_dir",default="./new_metrics.csv",type=str,help="File path to the metrics csv file.")
+    parser.add_argument("--prev_metrics_csv_dir", default="./prev_metrics.csv", type=str,
                         help="File path to the metrics csv file of the prev loaded model.")
     args = parser.parse_args()
 
