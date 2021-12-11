@@ -11,11 +11,11 @@ from PIL import Image
 
 #TODO DRIVE testloader and test script
 
-class ChaseTestLoader(Dataset):
-    def __init__(self, image_dir, mask_dir, transform=None):
+class IMG_test_Dataset(Dataset):
+    def __init__(self, image_dir, mask_dir, transform = None):
         self.image_dir = image_dir
-        self.transform = transform
         self.mask_dir = mask_dir
+        self.transform = transform
         self.images = os.listdir(image_dir)
 
     def __len__(self):
@@ -23,18 +23,17 @@ class ChaseTestLoader(Dataset):
 
     def __getitem__(self, index):
         img_path = os.path.join(self.image_dir, self.images[index])
-        mask_path = os.path.join(self.mask_dir, self.images[index].replace('.jpg', '_1stHO.png'))
+        mask_path = os.path.join(self.mask_dir, self.images[index].replace('.jpg', '_predicted_mask.jpg'))
         image = np.array(Image.open(img_path).convert('RGB'), dtype=np.float32)
-        mask = np.array(Image.open(mask_path).convert('L'), dtype=np.float32)
-        mask[mask == 255.0] = 1.0
 
-        if self.transform is not None:
-            augmentations = self.transform(image=image, mask=mask)
-            image = augmentations['image']
-            mask = augmentations['mask']
 
-        return image, mask, mask_path
 
+        if self.transform is  not None:
+            augmentations = self.transform(image = image)
+            image = augmentations["image"]
+
+
+        return image,mask_path
 
 def test(args):
     images, masks, weights, device = args.input_dir, args.mask_dir, args.weights, args.device
@@ -46,9 +45,9 @@ def test(args):
 
     print("Loading Inference Images.....")
 
-    dataset = ChaseTestLoader(images,masks)
+    dataset = IMG_test_Dataset(images,masks)
 
-    print("images Loaded")
+    print("Images Loaded")
 
 
     print("Loading model")
@@ -56,16 +55,34 @@ def test(args):
     model.to(device)
     print("Model loaded")
 
+
+
     print("Loading trained model parameters")
     checkpoint = torch.load(weights)
     model.load_state_dict(checkpoint['state_dict'])
     model.eval()
     print("Loaded model parameters")
 
+    print("Saving model as ONNX Format for interoperability")
+    dummy_input = torch.randn(args.batch_size, 3, args.height_onnx_model,args.width_onnx_model, requires_grad=True )
+    input_names = ["input"]
+    output_names = ["output"]
+    torch.onnx.export(model,
+                      dummy_input,
+                      args.onnx_model_name,
+                      verbose=False,
+                      input_names=input_names,
+                      output_names=output_names,
+                      do_constant_folding=True,
+                      export_params=True,
+                      dynamic_axes={'input': {0: 'batch_size'},  # variable length axes
+                                    'output': {0: 'batch_size'}}
+                      )
 
 
 
-    for img_path,mask,mask_path in dataset:
+
+    for img_path,mask_path in dataset:
         img = torch.from_numpy(img_path).to(device)
         img = img.float()
         img /= 255.0
@@ -88,11 +105,15 @@ def test(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--batch_size", default=1, type=int, help="Batch Size for testing")
     parser.add_argument("--input_dir", type=str, required=True, help="Relative path to test image path")
     parser.add_argument("--mask_dir", type=str, required=True, help="Relative path to test masks(initially blank)")
     parser.add_argument("--weights", default="trained.pth.tar", type=str,
                         help="Relative path to the trained model path")
     parser.add_argument("--device", default="cuda", help="cuda or cpu")
+    parser.add_argument("--onnx_model_name", default="VesselNet.onnx", help="name given to the model")
+    parser.add_argument("--height_onnx_model", type=int,default=512, help="Height ")
+    parser.add_argument("--width_onnx_model", type=int ,default=512, help="cuda or cpu")
     args = parser.parse_args()
 
     test(args)
