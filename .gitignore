@@ -140,3 +140,5 @@ Datasets/mini_datasets/
 /DRIVE Results_overfit_batch4_256res/
 /runs/
 /validation_saved_images/
+/metrics_plots/
+/validation_saved_images/

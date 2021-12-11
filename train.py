@@ -170,30 +170,30 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", default="VesselNet", type=str, help="Name of the saved model")
     parser.add_argument("--dataset_name", default="CHASE", type=str, help="Name of the data set used")
-    parser.add_argument("--lr", default=1e-4, type=float, help="Learning Rate for training")
-    parser.add_argument("--batch_size", default=32, type=int, help="Batch Size for training")
+    parser.add_argument("--lr", default=1e-3, type=float, help="Learning Rate for training")
+    parser.add_argument("--batch_size", default=4, type=int, help="Batch Size for training")
     parser.add_argument("--device", default="cuda", help="cuda or cpu")
-    parser.add_argument("--epochs", default=10, type=int, help="Number of Epochs")
+    parser.add_argument("--epochs", default=5, type=int, help="Number of Epochs")
     parser.add_argument("--num_workers", default=2, help="Number of workers")
     parser.add_argument("--height", default=256, type=int, help="Input Image Height")
-    parser.add_argument("--width", default=512, type=int, help="Input Image width")
+    parser.add_argument("--width", default=56, type=int, help="Input Image width")
     parser.add_argument("--pin_memory", default=True, help="Pin Memory")
     parser.add_argument("--load_model",type=bool, default=False, help="Load Pretrained Model")
-    parser.add_argument("--train_dir", default="Datasets/CHASE/train/images", type=str,
+    parser.add_argument("--train_dir", default="Datasets/CHASE/CHASE_500/train/images", type=str,
                         help="Training images directory")
-    parser.add_argument("--train_mask", default="Datasets/CHASE/train/labels", type=str,
+    parser.add_argument("--train_mask", default="Datasets/CHASE/CHASE_500/train/labels", type=str,
                         help="Training mask directory")
-    parser.add_argument("--val_dir", default="Datasets/CHASE/validate/images",
+    parser.add_argument("--val_dir", default="Datasets/CHASE/CHASE_500/validate/images",
                         help="Validation Image directory")
-    parser.add_argument("--val_mask", type=str, default="Datasets/CHASE/validate/labels",
+    parser.add_argument("--val_mask", type=str, default="Datasets/CHASE/CHASE_500/validate/labels",
                         help="Validation label directory")
-    parser.add_argument("--test_dir", default="Datasets/CHASE/test/images", type=str,
+    parser.add_argument("--test_dir", default="Datasets/CHASE/CHASE_500/test/images", type=str,
                         help="Test image directory")
-    parser.add_argument("--test_mask", default="Datasets/CHASE/test/labels",
+    parser.add_argument("--test_mask", default="Datasets/CHASE/CHASE_500/test/labels",
                         help="Test mask directory")
     parser.add_argument("--load_weights", default="trained.pth.tar", type=str, help="Add training weight path.")
-    parser.add_argument("--metrics_csv_dir",default="./prev_metrics_3epochs.csv",type=str,help="File path to the metrics csv file.")
-    parser.add_argument("--prev_metrics_csv_dir", default="./prev_metrics_3epochs.csv", type=str,
+    parser.add_argument("--metrics_csv_dir",default="./new_metrics.csv",type=str,help="File path to the metrics csv file.")
+    parser.add_argument("--prev_metrics_csv_dir", default="./prev_metrics.csv", type=str,
                         help="File path to the metrics csv file of the prev loaded model.")
     args = parser.parse_args()
 

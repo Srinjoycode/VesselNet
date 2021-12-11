@@ -80,8 +80,9 @@ def check_metrics(train_loader, val_loader, model, writer, epoch_no,
     val_total_specificity = 0
     val_total_mcc = 0
 
-    if (not os.path.isfile(metrics_dir)):
-        make_csv_copy(metrics_dir, prev_metrics_csv_dir)
+    if load_model == True:
+        if (not os.path.isfile(metrics_dir)):
+            make_csv_copy(metrics_dir, prev_metrics_csv_dir)
 
     # start of model evaluation
     model.eval()
