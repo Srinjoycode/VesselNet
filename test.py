@@ -5,10 +5,11 @@ import torchvision
 import torch
 import numpy as np
 from torch.utils.data import Dataset
-
+from torchvision import transforms, utils
 from models.VesselNet import Vessel_net
 from PIL import Image
-
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 #TODO DRIVE testloader and test script
 
 class IMG_test_Dataset(Dataset):
@@ -23,17 +24,19 @@ class IMG_test_Dataset(Dataset):
 
     def __getitem__(self, index):
         img_path = os.path.join(self.image_dir, self.images[index])
-        mask_path = os.path.join(self.mask_dir, self.images[index].replace('.jpg', '_predicted_mask.jpg'))
+        mask_path = os.path.join(self.mask_dir, self.images[index].replace('.jpg', '_mask.png'))
         image = np.array(Image.open(img_path).convert('RGB'), dtype=np.float32)
-
+        mask = np.array(Image.open(mask_path).convert('L'), dtype=np.float32)
+        mask[mask == 255.0] = 1.0
 
 
         if self.transform is  not None:
-            augmentations = self.transform(image = image)
+            augmentations = self.transform(image=image, mask=mask)
             image = augmentations["image"]
+            mask = augmentations["mask"]
 
 
-        return image,mask_path
+        return image,mask,mask_path
 
 def test(args):
     images, masks, weights, device = args.input_dir, args.mask_dir, args.weights, args.device
@@ -41,11 +44,15 @@ def test(args):
     if not os.path.exists("test_metrics"):
         os.makedirs("test_metrics")
 
+    if not os.path.exists(masks):
+        os.makedirs(masks)
     # Dataloader
 
     print("Loading Inference Images.....")
 
-    dataset = IMG_test_Dataset(images,masks)
+    dataset = IMG_test_Dataset(images,masks,transform=A.Compose([
+                                                                    A.Resize(height=args.height_onnx_model, width=args.width_onnx_model)
+                                                                ]))
 
     print("Images Loaded")
 
@@ -58,7 +65,7 @@ def test(args):
 
 
     print("Loading trained model parameters")
-    checkpoint = torch.load(weights)
+    checkpoint = torch.load(weights,map_location=torch.device('cpu'))
     model.load_state_dict(checkpoint['state_dict'])
     model.eval()
     print("Loaded model parameters")
@@ -82,7 +89,7 @@ def test(args):
 
 
 
-    for img_path,mask_path in dataset:
+    for img_path,mask,mask_path in dataset:
         img = torch.from_numpy(img_path).to(device)
         img = img.float()
         img /= 255.0
