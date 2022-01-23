@@ -159,7 +159,7 @@ def main(args):
                       loss_fn=loss_fn,
                       train_loss=train_loss.item(),
                       load_model=bool(args.load_model),
-                      writer={"writer": writer, "step": step},
+
                       metrics_dir=args.metrics_csv_dir,
                       prev_metrics_csv_dir=args.prev_metrics_csv_dir
                       )
