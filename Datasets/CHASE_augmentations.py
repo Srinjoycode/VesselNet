@@ -9,27 +9,20 @@ HEIGHT = 960
 WIDTH = 999
 transform = A.Compose([
     A.OneOf([
-        A.RandomSizedCrop(min_max_height=(500, HEIGHT), height=HEIGHT, width=WIDTH, p=0.3),
-        A.PadIfNeeded(min_height=HEIGHT, min_width=WIDTH, p=0.4)
+        A.RandomSizedCrop(min_max_height=(100, HEIGHT), height=HEIGHT, width=WIDTH, p=1),
+                         A.PadIfNeeded(min_height=HEIGHT, min_width=WIDTH, p=1)
             ], p=1),
     A.Rotate(limit=90, p=1, border_mode=cv2.BORDER_CONSTANT),
-    A.HorizontalFlip(p=0.3),
-    A.VerticalFlip(p=0.4),
-    A.RandomBrightnessContrast(brightness_limit=0, contrast_limit=0, p=0.4),
-    A.OneOf([
-        A.ElasticTransform(alpha=60, sigma=120 * 0.05, alpha_affine=120 * 0.03, p=0.3, border_mode=cv2.BORDER_CONSTANT),
-        A.GridDistortion(p=0.4, border_mode=cv2.BORDER_CONSTANT),
-        A.OpticalDistortion(distort_limit=1, shift_limit=0.3, p=1, border_mode=cv2.BORDER_CONSTANT)
-             ], p=0.3),
-    A.CLAHE(p=0.4),
-    A.RandomRotate90(p=0.4),
-    A.Transpose(p=0.1),
-    A.OneOf([A.Blur(blur_limit=3,p=0.4),
-             A.OpticalDistortion(p=0.3, border_mode=cv2.BORDER_CONSTANT),
-             A.GridDistortion(p=0.4, border_mode=cv2.BORDER_CONSTANT),
-             ], p=1.0),
-    A.RandomGamma(p=0.3),
-])
+    A.HorizontalFlip(p=1),
+    A.VerticalFlip(p=1),
+    A.RandomBrightnessContrast(brightness_limit=0, contrast_limit=0, p=1),
+    A.CLAHE(p=1),
+    A.RandomRotate90(p=1),
+    A.Blur(blur_limit=3,p=1),
+    A.RandomGamma(p=1),
+    A.RandomScale(scale_limit=(0, 1), p=1, interpolation=1), A.PadIfNeeded(HEIGHT, WIDTH, border_mode=cv2.BORDER_CONSTANT),
+    A.Resize(height = HEIGHT, width = WIDTH, interpolation=1, always_apply=False, p=1)])
+
 
 counter = 1
 for i in range(0, 1):
