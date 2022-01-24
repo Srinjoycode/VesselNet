@@ -12,7 +12,6 @@ import threading
 import time
 from results.roc_precall import roc_curve_plot, precision_recall_curve_plot
 
-
 def dice_score(preds, y):
     return (2 * (preds * y).sum()) / (preds + y).sum() + 1e-8
 
@@ -109,8 +108,8 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
                 train_total_mcc += mcc((preds > 0.5).float().type(torch.int), y)
 
                 if(last_epoch == True):
-                    predictions = predictions.cpu().numpy().ravel()
-                    y = y.numpy().ravel()
+                    predictions = predictions.detach().cpu().numpy().ravel()
+                    y = y.detach().cpu().numpy().ravel()
                     roc_curve_plot(y, predictions, "ROC Curve - Training", epoch_no)
                     precision_recall_curve_plot(y, predictions, "Precision Recall Curve - Training", epoch_no)
 
@@ -189,8 +188,8 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
                 val_total_mcc += mcc((preds > 0.5).float().type(torch.int), y)
 
                 if(last_epoch == True):
-                    predictions = predictions.cpu().numpy().ravel()
-                    y = y.numpy().ravel()
+                    predictions = predictions.detach().cpu().numpy().ravel()
+                    y = y.detach().cpu().numpy().ravel()
                     roc_curve_plot(y, predictions, "ROC Curve - Validation", epoch_no)
                     precision_recall_curve_plot(y, predictions, "Precision Recall Curve - Validation", epoch_no)
 
