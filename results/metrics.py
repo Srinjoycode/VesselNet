@@ -109,7 +109,7 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
                 train_total_mcc += mcc((preds > 0.5).float().type(torch.int), y)
 
                 if(last_epoch == True):
-                    predictions = predictions.numpy().ravel()
+                    predictions = predictions.cpu().numpy().ravel()
                     y = y.numpy().ravel()
                     roc_curve_plot(y, predictions, "ROC Curve - Training", epoch_no)
                     precision_recall_curve_plot(y, predictions, "Precision Recall Curve - Training", epoch_no)
