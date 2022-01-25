@@ -65,13 +65,13 @@ def make_csv_copy(metrics_dir,prev_metrics_csv_dir):
 def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
                   loss_fn, train_loss, load_model, device="cuda",
                   metrics_dir='./new_metrics.csv',
-                  prev_metrics_csv_dir='./prev_metrics.csv'):
+                  prev_metrics_csv_dir='./prev_metrics.csv', location='./metrics_plots'):
     global adding_m
     adding_m = dict()
 
     s = time.perf_counter()
 
-    def training_train(epoch_no, last_epoch):
+    def training_train(epoch_no, last_epoch, location):
         # global variables definitions
         batch_num_correct = 0
         batch_num_pixels = 0
@@ -110,8 +110,8 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
                 if(last_epoch == True):
                     predictions = predictions.detach().cpu().numpy().ravel()
                     y = y.detach().cpu().numpy().ravel()
-                    roc_curve_plot(y, predictions, "ROC Curve - Training", epoch_no)
-                    precision_recall_curve_plot(y, predictions, "Precision Recall Curve - Training", epoch_no)
+                    roc_curve_plot(y, predictions, "ROC Curve - Training", epoch_no, location)
+                    precision_recall_curve_plot(y, predictions, "Precision Recall Curve - Training", epoch_no, location)
 
         train_acc = accuracy_score(batch_num_correct, batch_num_pixels)
 
@@ -143,7 +143,7 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
         adding_m['train_mcc'] = (train_total_mcc.detach().cpu().numpy() / len(train_loader))
 
 
-    def validation_train(epoch_no, last_epoch):
+    def validation_train(epoch_no, last_epoch, location):
 
         #validation
         global metrics_dir_path
@@ -190,8 +190,8 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
                 if(last_epoch == True):
                     predictions = predictions.detach().cpu().numpy().ravel()
                     y = y.detach().cpu().numpy().ravel()
-                    roc_curve_plot(y, predictions, "ROC Curve - Validation", epoch_no)
-                    precision_recall_curve_plot(y, predictions, "Precision Recall Curve - Validation", epoch_no)
+                    roc_curve_plot(y, predictions, "ROC Curve - Validation", epoch_no, location)
+                    precision_recall_curve_plot(y, predictions, "Precision Recall Curve - Validation", epoch_no, location)
 
         val_acc = accuracy_score(batch_num_correct, batch_num_pixels)
 
@@ -221,8 +221,8 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
         adding_m['val_specificity'] = (val_total_specificity.detach().cpu().numpy() / len(val_loader))
         adding_m['val_mcc'] = (val_total_mcc.detach().cpu().numpy() / len(val_loader))
 
-    train_thread = threading.Thread(target=training_train, args=(epoch_no, last_epoch, ))
-    validation_thread = threading.Thread(target=validation_train, args=(epoch_no, last_epoch, ))
+    train_thread = threading.Thread(target=training_train, args=(epoch_no, last_epoch, location, ))
+    validation_thread = threading.Thread(target=validation_train, args=(epoch_no, last_epoch, location, ))
     train_thread.start()
     validation_thread.start()
     train_return = train_thread.join()
