@@ -226,9 +226,8 @@ def check_metrics(train_loader, val_loader, model, writer, epoch_no,
 
 # function to update dataframe which contains all the metrics for each epoch
 prediction = pd.DataFrame(
-    columns=['Epoch_no', 'Val_Accuracy', 'Val_IoU', 'Val_Dice', 'Val_f1_score', 'Val_Precision', 'Val_Recall',
-             'Val_Specificity', 'Train_Accuracy', 'Train_IoU', 'Train_Dice', 'Train_f1_scorVal_e', 'Train_Precision',
-             'Train_Recall', 'Train_Specificity'])
+    columns=['Epoch_no', 'Val_Accuracy', 'Val_IoU', 'Val_Dice', 'Val_f1_score', 'Val_Precision', 'Val_Recall', 'Val_Specificity', 'Val_MCC', 'Train_Accuracy', 'Train_IoU', 'Train_Dice', 'Train_f1_score', 'Train_Precision', 'Train_Recall', 'Train_Specificity', 'Train_MCC', 'Train_loss', 'Val_loss'])
+
 
 
 # For adding Metircs to CSV
