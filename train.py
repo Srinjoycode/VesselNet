@@ -150,19 +150,20 @@ def main(args):
         #CHECK METRICS
         print("Epoch Metrics are being printed for epoch num :" + str(epoch))
 
-        check_metrics(train_loader,
-                      val_loader,
-                      model,
-                      device=args.device,
-                      epoch_no=int(epoch),
-                      last_epoch=last_epoch,
-                      loss_fn=loss_fn,
-                      train_loss=train_loss.item(),
-                      load_model=bool(args.load_model),
-                      writer={"writer": writer, "step": step},
-                      metrics_dir=args.metrics_csv_dir,
-                      prev_metrics_csv_dir=args.prev_metrics_csv_dir
-                      )
+        check_metrics(  train_loader,
+                        val_loader,
+                        model,
+                        device=args.device,
+                        epoch_no=int(epoch),
+                        last_epoch=last_epoch,
+                        loss_fn = loss_fn,
+                        train_loss = train_loss.item(),
+                        load_model=bool(args.load_model),
+                        metrics_dir=args.metrics_csv_dir,
+                        prev_metrics_csv_dir=args.prev_metrics_csv_dir,
+                        location=args.roc_location
+                    )
+        
         step += 1
 
 
@@ -195,6 +196,7 @@ if __name__ == "__main__":
     parser.add_argument("--metrics_csv_dir",default="./new_metrics.csv",type=str,help="File path to the metrics csv file.")
     parser.add_argument("--prev_metrics_csv_dir", default="./prev_metrics.csv", type=str,
                         help="File path to the metrics csv file of the prev loaded model.")
+    parser.add_argument("--roc_location", default = "./metrics_plots", type=str, help="Adding location where ROC plots will be saved")
     args = parser.parse_args()
 
     main(args)
