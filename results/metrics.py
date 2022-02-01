@@ -10,7 +10,7 @@ import seaborn as sns
 import os
 # import threading
 import time
-from metrics.roc_precall import roc_curve_plot, precision_recall_curve_plot
+from results.roc_precall import roc_curve_plot, precision_recall_curve_plot
 
 
 def dice_score(preds, y):
