@@ -11,6 +11,7 @@ import os
 # import threading
 import time
 from results.roc_precall import roc_curve_plot, precision_recall_curve_plot
+from sklearn.metrics import confusion_matrix
 
 
 def dice_score(preds, y):
@@ -57,6 +58,14 @@ def specificity(preds, y):
 def mcc(preds, y):
     return torchmetrics.functional.matthews_corrcoef(preds, y, num_classes=2)
 
+def kappa_score(preds,y):
+    
+    tp, fn, fp, tn = confusion_matrix(y,preds, labels=[1,0]).reshape(-1)
+    num = 2*((tp*tn) - (fp*fn))
+    denom = ((tp+fp)*(fp+tn)) + ((tp+fn)*(fn+tn))
+    kappa = num/denom
+    return kappa
+
 def make_csv_copy(metrics_dir,prev_metrics_csv_dir):
     metrics_df_old = pd.read_csv(prev_metrics_csv_dir, index_col=False)
     convert_to_csv(metrics_df_old,metrics_dir)
@@ -83,6 +92,7 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
         train_total_f1 = 0
         train_total_specificity = 0
         train_total_mcc = 0
+        train_total_kappa = 0
         # start of model evaluation
         model.eval()
         with torch.no_grad():
@@ -107,6 +117,13 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
                 train_total_recall += recall((preds > 0.5).float().type(torch.int), y)
                 train_total_specificity += specificity((preds > 0.5).float().type(torch.int), y)
                 train_total_mcc += mcc((preds > 0.5).float().type(torch.int), y)
+                
+                preds = preds.detach().cpu().numpy()
+                y = y.detach().cpu().numpy()
+                preds= preds.ravel()
+                y= y.ravel()
+
+                train_total_kappa += kappa_score(preds,y)
 
         train_acc = accuracy_score(batch_num_correct, batch_num_pixels)
 
@@ -127,6 +144,8 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
         print(f"torch-metrics mean specificity: {train_total_specificity / len(train_loader)}")
 
         print(f"Custom MCC metrics value:{train_total_mcc / len(train_loader)}")
+        
+        print(f"kappa score:{train_total_kappa / len(train_loader)}")
 
         if(last_epoch == True):
             predictions = predictions.detach().cpu().numpy().ravel()
@@ -142,6 +161,7 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
         adding_m['train_recall'] = (train_total_recall.detach().cpu().numpy() / len(train_loader))
         adding_m['train_specificity'] = (train_total_specificity.detach().cpu().numpy() / len(train_loader))
         adding_m['train_mcc'] = (train_total_mcc.detach().cpu().numpy() / len(train_loader))
+        adding_m['train_kappa'] = (train_total_kappa / len(train_loader))
 
 
     def validation_metrics(epoch_no, last_epoch, location):
@@ -158,6 +178,7 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
         val_total_f1 = 0
         val_total_specificity = 0
         val_total_mcc = 0
+        val_total_kappa = 0
 
         if load_model == True:
             if (not os.path.isfile(metrics_dir)):
@@ -187,6 +208,13 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
                 val_total_recall += recall((preds > 0.5).float().type(torch.int), y)
                 val_total_specificity += specificity((preds > 0.5).float().type(torch.int), y)
                 val_total_mcc += mcc((preds > 0.5).float().type(torch.int), y)
+                
+                preds = preds.detach().cpu().numpy()
+                y = y.detach().cpu().numpy()
+                preds= preds.ravel()
+                y= y.ravel()
+
+                val_total_kappa += kappa_score(preds,y)
 
         val_acc = accuracy_score(batch_num_correct, batch_num_pixels)
 
@@ -206,6 +234,8 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
         print(f"torch-metrics mean specificity: {val_total_specificity / len(val_loader)}")
 
         print(f"Custom MCC metrics value:{val_total_mcc / len(val_loader)}")
+        
+        print(f"kappa score:{val_total_kappa / len(val_loader)}")
 
         if(last_epoch == True):
             predictions = predictions.detach().cpu().numpy().ravel()
@@ -221,6 +251,7 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
         adding_m['val_recall'] = (val_total_recall.detach().cpu().numpy() / len(val_loader))
         adding_m['val_specificity'] = (val_total_specificity.detach().cpu().numpy() / len(val_loader))
         adding_m['val_mcc'] = (val_total_mcc.detach().cpu().numpy() / len(val_loader))
+        adding_m['val_kappa'] = (val_total_kappa / len(val_loader))
 
     # train_thread = threading.Thread(target=training_train, args=(epoch_no, last_epoch, location, ))
     # validation_thread = threading.Thread(target=validation_train, args=(epoch_no, last_epoch, location, ))
@@ -242,6 +273,7 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
                          val_recall = adding_m['val_recall'],
                          val_specificity = adding_m['val_specificity'],
                          val_mcc = adding_m['val_mcc'],
+                         val_kappa = adding_m['val_kappa'],
 
                          train_accuracy = adding_m['train_accuracy'],
                          train_iou = adding_m['train_iou'],
@@ -251,6 +283,7 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
                          train_recall = adding_m['train_recall'],
                          train_specificity = adding_m['train_specificity'],
                          train_mcc = adding_m['train_mcc'],
+                         train_kappa = adding_m['train_kappa'],
 
                          train_loss= adding_m['train_loss'],
                          val_loss= adding_m['val_loss'],
@@ -274,10 +307,10 @@ def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
 
 # function to update dataframe which contains all the metrics for each epoch
 prediction = pd.DataFrame(
-    columns=['Epoch_no', 'Val_Accuracy', 'Val_IoU', 'Val_Dice', 'Val_f1_score', 'Val_Precision', 'Val_Recall', 'Val_Specificity', 'Val_MCC', 'Train_Accuracy', 'Train_IoU', 'Train_Dice', 'Train_f1_score', 'Train_Precision', 'Train_Recall', 'Train_Specificity', 'Train_MCC', 'Train_loss', 'Val_loss'])
+    columns=['Epoch_no', 'Val_Accuracy', 'Val_IoU', 'Val_Dice', 'Val_f1_score', 'Val_Precision', 'Val_Recall', 'Val_Specificity', 'Val_MCC','Val_Kappa', 'Train_Accuracy', 'Train_IoU', 'Train_Dice', 'Train_f1_score', 'Train_Precision', 'Train_Recall', 'Train_Specificity', 'Train_MCC','Train_Kappa', 'Train_loss', 'Val_loss'])
 
 # For adding Metircs to CSV
-def adding_metrics(epoch_no, train_accuracy, val_accuracy, train_iou, val_iou, train_dice, val_dice, train_f1_score, val_f1_score, train_precision, val_precision, train_recall, val_recall, train_specificity, val_specificity, train_mcc, val_mcc, train_loss, val_loss, load_model,metrics_dir):
+def adding_metrics(epoch_no, train_accuracy, val_accuracy, train_iou, val_iou, train_dice, val_dice, train_f1_score, val_f1_score, train_precision, val_precision, train_recall, val_recall, train_specificity, val_specificity, train_mcc, val_mcc, val_kappa,train_kappa, train_loss, val_loss, load_model,metrics_dir):
 
     global prediction
     if bool(load_model):
@@ -293,6 +326,7 @@ def adding_metrics(epoch_no, train_accuracy, val_accuracy, train_iou, val_iou, t
                'Val_Recall': val_recall,
                'Val_Specificity': val_specificity,
                'Val_MCC': val_mcc,
+               'Val_Kappa':val_kappa,
 
                'Train_Accuracy': train_accuracy,
                'Train_IoU': train_iou,
@@ -302,6 +336,7 @@ def adding_metrics(epoch_no, train_accuracy, val_accuracy, train_iou, val_iou, t
                'Train_Recall': train_recall,
                'Train_Specificity': train_specificity,
                'Train_MCC': train_mcc,
+               'Train_Kappa':train_kappa,
 
                'Train_loss': train_loss,
                'Val_loss':val_loss,
