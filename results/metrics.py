@@ -1,13 +1,17 @@
 import torch
 import numpy as np
+from torch._C import _valgrind_toggle
 import torchmetrics
 import torchmetrics.functional
 import pandas as pd
+from sklearn import datasets, metrics
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn import datasets, metrics
-
-step = 0
+import os
+# import threading
+import time
+from results.roc_precall import roc_curve_plot, precision_recall_curve_plot
+from sklearn.metrics import confusion_matrix
 
 
 def dice_score(preds, y):
@@ -54,202 +58,299 @@ def specificity(preds, y):
 def mcc(preds, y):
     return torchmetrics.functional.matthews_corrcoef(preds, y, num_classes=2)
 
-
-def check_metrics(loader, model, writer, device="cuda"):
-    global step
-
-    # global variables definitions
-    batch_num_correct = 0
-    batch_num_pixels = 0
-    batch_dice_score = 0
-    total_iou_score = 0
-    total_precision = 0
-    total_recall = 0
-    total_f1 = 0
-    total_specificity = 0
-    total_mcc = 0
-    # start of model evaluation
-    model.eval()
-    with torch.no_grad():
-        for x, y in loader:
-            x = x.to(device)  # storing the input image
-            y = y.to(device).unsqueeze(1)  # storing the original mask
-            # converting the predictions to a binary map
-            preds = torch.sigmoid(model(x))
-            preds = (preds > 0.5).float()
-
-            batch_num_pixels += num_total_pixels(preds)
-            y, preds = y.cpu(), preds.cpu()
-
-            batch_num_correct += num_correct_pixels(preds, y)
-            batch_dice_score += dice_score(preds, y)
-            total_iou_score += iou(preds, y)
-
-            preds = preds.type(torch.int)
-            y = y.type(torch.int)
-            total_f1 += f1(preds, y)
-            total_precision += precision(preds, y)
-            total_recall += recall(preds, y)
-            total_specificity += specificity(preds, y)
-            total_mcc += mcc(preds, y)
-
-    acc = accuracy_score(batch_num_correct, batch_num_pixels)
-    writer["writer"].add_scalar("Training Accuracy", acc, global_step=step)
-    step += 1
-
-    print(f"Got {batch_num_correct}/{batch_num_pixels} with acc {acc}")
-
-    print(f"mean IoU score: {total_iou_score / len(loader)}")
-
-    print(f"mean Dice Score: {batch_dice_score / len(loader)}")
-
-    print(f"torch-metrics mean f1_score: {total_f1 / len(loader)}")
-
-    print(f"torch-metrics mean precision: {total_precision / len(loader)}")
-
-    print(f"torch-metrics mean recall: {total_recall / len(loader)}")
-
-    print(f"torch-metrics mean specificity: {total_specificity / len(loader)}")
-
-    print(f"Custom MCC metrics value:{total_mcc / len(loader)}")
+def kappa_score(preds,y):
     
-    print(adding_metrics(epoch_no, float(acc), float(total_iou_score),
-                                        float(batch_dice_score),
-                                        float(total_f1),
-                                        float(total_precision),
-                                        float(total_recall),
-                                        float(total_specificity)))
-    
-    preds = preds.numpy()
-    y = y.numpy()
-    preds = preds.ravel()
-    y = y.ravel()
-    
-    
-    roc_curve_plot(y, preds)
-    precision_recall_curve_plot(y, preds)
+    tp, fn, fp, tn = confusion_matrix(y,preds, labels=[1,0]).reshape(-1)
+    num = 2*((tp*tn) - (fp*fn))
+    denom = ((tp+fp)*(fp+tn)) + ((tp+fn)*(fn+tn))
+    kappa = num/denom
+    return kappa
 
+def make_csv_copy(metrics_dir,prev_metrics_csv_dir):
+    metrics_df_old = pd.read_csv(prev_metrics_csv_dir, index_col=False)
+    convert_to_csv(metrics_df_old,metrics_dir)
+
+
+
+def check_metrics(train_loader, val_loader, model, epoch_no, last_epoch,
+                  loss_fn, train_loss, load_model, device="cuda",
+                  metrics_dir='./new_metrics.csv',
+                  prev_metrics_csv_dir='./prev_metrics.csv', location='./metrics_plots'):
+    global adding_m
+    adding_m = dict()
+
+    s = time.perf_counter()
+
+    def training_metrics(epoch_no, last_epoch, location):
+        # global variables definitions
+        batch_num_correct = 0
+        batch_num_pixels = 0
+        train_batch_dice_score = 0
+        train_total_iou_score = 0
+        train_total_precision = 0
+        train_total_recall = 0
+        train_total_f1 = 0
+        train_total_specificity = 0
+        train_total_mcc = 0
+        train_total_kappa = 0
+        # start of model evaluation
+        model.eval()
+        with torch.no_grad():
+            for x, y in train_loader:
+                x = x.to(device)  # storing the input image
+                y = y.to(device).unsqueeze(1)  # storing the original mask
+                preds = torch.sigmoid(model(x))
+                predictions = model(x)
+                adding_m['train_loss'] = loss_fn(predictions, y).item()
+                predictions = torch.sigmoid(predictions)
+
+                batch_num_pixels += num_total_pixels((preds > 0.5).float())
+                y, preds = y.cpu(), (preds > 0.5).float().cpu()
+
+                batch_num_correct += num_correct_pixels((preds > 0.5).float(), y)
+                train_batch_dice_score += dice_score((preds > 0.5).float(), y)
+                train_total_iou_score += iou((preds > 0.5).float(), y)
+
+                y = y.type(torch.int)
+                train_total_f1 += f1((preds > 0.5).float().type(torch.int), y)
+                train_total_precision += precision((preds > 0.5).float().type(torch.int), y)
+                train_total_recall += recall((preds > 0.5).float().type(torch.int), y)
+                train_total_specificity += specificity((preds > 0.5).float().type(torch.int), y)
+                train_total_mcc += mcc((preds > 0.5).float().type(torch.int), y)
+                
+                preds = preds.detach().cpu().numpy()
+                y = y.detach().cpu().numpy()
+                preds= preds.ravel()
+                y= y.ravel()
+
+                train_total_kappa += kappa_score(preds,y)
+
+        train_acc = accuracy_score(batch_num_correct, batch_num_pixels)
+
+        print('TRAINING SCORES')
+
+        print(f"Got {batch_num_correct}/{batch_num_pixels} with train_acc {train_acc}")
+
+        print(f"mean IoU score: {train_total_iou_score / len(train_loader)}")
+
+        print(f"mean Dice Score: {train_batch_dice_score / len(train_loader)}")
+
+        print(f"torch-metrics mean f1_score: {train_total_f1 / len(train_loader)}")
+
+        print(f"torch-metrics mean precision: {train_total_precision / len(train_loader)}")
+
+        print(f"torch-metrics mean recall: {train_total_recall / len(train_loader)}")
+
+        print(f"torch-metrics mean specificity: {train_total_specificity / len(train_loader)}")
+
+        print(f"Custom MCC metrics value:{train_total_mcc / len(train_loader)}")
+        
+        print(f"kappa score:{train_total_kappa / len(train_loader)}")
+
+        if(last_epoch == True):
+            predictions = predictions.detach().cpu().numpy().ravel()
+            y = y.detach().cpu().numpy().ravel()
+            roc_curve_plot(y, predictions, "ROC Curve - Training", epoch_no, location)
+            precision_recall_curve_plot(y, predictions, "Precision Recall Curve - Training", epoch_no, location)
+
+        adding_m['train_accuracy'] = train_acc.detach().cpu().numpy()
+        adding_m['train_iou'] = (train_total_iou_score.detach().cpu().numpy() / len(train_loader))
+        adding_m['train_dice'] = (train_batch_dice_score.detach().cpu().numpy() / len(train_loader))
+        adding_m['train_f1_score'] = (train_total_f1.detach().cpu().numpy() / len(train_loader))
+        adding_m['train_precision'] = (train_total_precision.detach().cpu().numpy() / len(train_loader))
+        adding_m['train_recall'] = (train_total_recall.detach().cpu().numpy() / len(train_loader))
+        adding_m['train_specificity'] = (train_total_specificity.detach().cpu().numpy() / len(train_loader))
+        adding_m['train_mcc'] = (train_total_mcc.detach().cpu().numpy() / len(train_loader))
+        adding_m['train_kappa'] = (train_total_kappa / len(train_loader))
+
+
+    def validation_metrics(epoch_no, last_epoch, location):
+
+        #validation
+        global metrics_dir_path
+        metrics_dir_path = metrics_dir
+        batch_num_correct = 0
+        batch_num_pixels = 0
+        val_batch_dice_score = 0
+        val_total_iou_score = 0
+        val_total_precision = 0
+        val_total_recall = 0
+        val_total_f1 = 0
+        val_total_specificity = 0
+        val_total_mcc = 0
+        val_total_kappa = 0
+
+        if load_model == True:
+            if (not os.path.isfile(metrics_dir)):
+                make_csv_copy(metrics_dir, prev_metrics_csv_dir)
+
+        # start of model evaluation
+        model.eval()
+        with torch.no_grad():
+            for x, y in val_loader:
+                x = x.to(device)  # storing the input image
+                y = y.to(device).unsqueeze(1)  # storing the original mask
+                preds = torch.sigmoid(model(x))
+                predictions = model(x)
+                adding_m['val_loss'] = loss_fn(predictions, y).item()
+                predictions = torch.sigmoid(predictions)
+
+                batch_num_pixels += num_total_pixels((preds > 0.5).float())
+                y, preds = y.cpu(), (preds > 0.5).float().cpu()
+
+                batch_num_correct += num_correct_pixels((preds > 0.5).float(), y)
+                val_batch_dice_score += dice_score((preds > 0.5).float(), y)
+                val_total_iou_score += iou((preds > 0.5).float(), y)
+
+                y = y.type(torch.int)
+                val_total_f1 += f1((preds > 0.5).float().type(torch.int), y)
+                val_total_precision += precision((preds > 0.5).float().type(torch.int), y)
+                val_total_recall += recall((preds > 0.5).float().type(torch.int), y)
+                val_total_specificity += specificity((preds > 0.5).float().type(torch.int), y)
+                val_total_mcc += mcc((preds > 0.5).float().type(torch.int), y)
+                
+                preds = preds.detach().cpu().numpy()
+                y = y.detach().cpu().numpy()
+                preds= preds.ravel()
+                y= y.ravel()
+
+                val_total_kappa += kappa_score(preds,y)
+
+        val_acc = accuracy_score(batch_num_correct, batch_num_pixels)
+
+        print('VALIDATION SCORES')
+        print(f"Got {batch_num_correct}/{batch_num_pixels} with val_acc {val_acc}")
+
+        print(f"mean IoU score: {val_total_iou_score / len(val_loader)}")
+
+        print(f"mean Dice Score: {val_batch_dice_score / len(val_loader)}")
+
+        print(f"torch-metrics mean f1_score: {val_total_f1 / len(val_loader)}")
+
+        print(f"torch-metrics mean precision: {val_total_precision / len(val_loader)}")
+
+        print(f"torch-metrics mean recall: {val_total_recall / len(val_loader)}")
+
+        print(f"torch-metrics mean specificity: {val_total_specificity / len(val_loader)}")
+
+        print(f"Custom MCC metrics value:{val_total_mcc / len(val_loader)}")
+        
+        print(f"kappa score:{val_total_kappa / len(val_loader)}")
+
+        if(last_epoch == True):
+            predictions = predictions.detach().cpu().numpy().ravel()
+            y = y.detach().cpu().numpy().ravel()
+            roc_curve_plot(y, predictions, "ROC Curve - Validation", epoch_no, location)
+            precision_recall_curve_plot(y, predictions, "Precision Recall Curve - Validation", epoch_no, location)
+
+        adding_m['val_accuracy'] = val_acc.detach().cpu().numpy()
+        adding_m['val_iou'] = (val_total_iou_score.detach().cpu().numpy() / len(val_loader))
+        adding_m['val_dice'] = (val_batch_dice_score.detach().cpu().numpy() / len(val_loader))
+        adding_m['val_f1_score'] = (val_total_f1.detach().cpu().numpy() / len(val_loader))
+        adding_m['val_precision'] = (val_total_precision.detach().cpu().numpy() / len(val_loader))
+        adding_m['val_recall'] = (val_total_recall.detach().cpu().numpy() / len(val_loader))
+        adding_m['val_specificity'] = (val_total_specificity.detach().cpu().numpy() / len(val_loader))
+        adding_m['val_mcc'] = (val_total_mcc.detach().cpu().numpy() / len(val_loader))
+        adding_m['val_kappa'] = (val_total_kappa / len(val_loader))
+
+    # train_thread = threading.Thread(target=training_train, args=(epoch_no, last_epoch, location, ))
+    # validation_thread = threading.Thread(target=validation_train, args=(epoch_no, last_epoch, location, ))
+    # train_thread.start()
+    # validation_thread.start()
+    # train_return = train_thread.join()
+    # validation_return = validation_thread.join()
+
+    training_metrics(epoch_no, last_epoch, location)
+    validation_metrics(epoch_no, last_epoch, location)
+
+    print(adding_metrics(epoch_no = int(epoch_no),
+
+                         val_accuracy = adding_m['val_accuracy'],
+                         val_iou = adding_m['val_iou'],
+                         val_dice = adding_m['val_dice'],
+                         val_f1_score = adding_m['val_f1_score'],
+                         val_precision = adding_m['val_precision'],
+                         val_recall = adding_m['val_recall'],
+                         val_specificity = adding_m['val_specificity'],
+                         val_mcc = adding_m['val_mcc'],
+                         val_kappa = adding_m['val_kappa'],
+
+                         train_accuracy = adding_m['train_accuracy'],
+                         train_iou = adding_m['train_iou'],
+                         train_dice = adding_m['train_dice'],
+                         train_f1_score = adding_m['train_f1_score'],
+                         train_precision = adding_m['train_precision'],
+                         train_recall = adding_m['train_recall'],
+                         train_specificity = adding_m['train_specificity'],
+                         train_mcc = adding_m['train_mcc'],
+                         train_kappa = adding_m['train_kappa'],
+
+                         train_loss= adding_m['train_loss'],
+                         val_loss= adding_m['val_loss'],
+
+                         load_model = load_model,
+                         metrics_dir=metrics_dir,
+                         )
+          )
+    # # Plotting the ROC and Precision vs recall curves
+    Results_dataframe = pd.read_csv(metrics_dir, index_col=False)
+    #
+    # np.savetxt("preds.csv", preds, delimiter=",")
+    # np.savetxt("true.csv", y, delimiter=",")
+
+    f = time.perf_counter()
+    print(f'Metrics calculation finished in {f - s} second(s) for epoch: {epoch_no}')
 
     model.train()  # end of model evaluation
-    
-    
 
-    
-#function to upadate dataframe which contains all the mertics for each epoch  
-def adding_metrics(epoch_no, accuracy, iou,dice, f1_score, precision, recall, specificity):
+# function to update dataframe which contains all the metrics for each epoch
+prediction = pd.DataFrame(
+    columns=['Epoch_no', 'Val_Accuracy', 'Val_IoU', 'Val_Dice', 'Val_f1_score', 'Val_Precision', 'Val_Recall', 'Val_Specificity', 'Val_MCC','Val_Kappa', 'Train_Accuracy', 'Train_IoU', 'Train_Dice', 'Train_f1_score', 'Train_Precision', 'Train_Recall', 'Train_Specificity', 'Train_MCC','Train_Kappa', 'Train_loss', 'Val_loss'])
+
+# For adding Metircs to CSV
+def adding_metrics(epoch_no, train_accuracy, val_accuracy, train_iou, val_iou, train_dice, val_dice, train_f1_score, val_f1_score, train_precision, val_precision, train_recall, val_recall, train_specificity, val_specificity, train_mcc, val_mcc, val_kappa,train_kappa, train_loss, val_loss, load_model,metrics_dir):
+
     global prediction
-    new_row = {'Epoch_no': epoch_no, 
-               'Accuracy': accuracy, 
-               'IoU': iou,
-               'Dice': dice,
-               'f1_score': f1_score,
-               'Precision': precision,
-               'Recall': recall,
-               'Specificity':specificity}
+    if bool(load_model):
+        prediction = pd.read_csv(metrics_dir, index_col=False)
+
+    new_row = {'Epoch_no': epoch_no,
+
+               'Val_Accuracy': val_accuracy,
+               'Val_IoU': val_iou,
+               'Val_Dice': val_dice,
+               'Val_f1_score': val_f1_score,
+               'Val_Precision': val_precision,
+               'Val_Recall': val_recall,
+               'Val_Specificity': val_specificity,
+               'Val_MCC': val_mcc,
+               'Val_Kappa':val_kappa,
+
+               'Train_Accuracy': train_accuracy,
+               'Train_IoU': train_iou,
+               'Train_Dice': train_dice,
+               'Train_f1_score': train_f1_score,
+               'Train_Precision': train_precision,
+               'Train_Recall': train_recall,
+               'Train_Specificity': train_specificity,
+               'Train_MCC': train_mcc,
+               'Train_Kappa':train_kappa,
+
+               'Train_loss': train_loss,
+               'Val_loss':val_loss,
+               }
     prediction = prediction.append(new_row, ignore_index=True)
+    convert_to_csv(prediction,metrics_dir)
     return prediction
 
 
-#plotting roc  curve for each epoch
-def roc_curve_plot(y_true, y_preds):
-    
-    fpr, tpr, thresholds = metrics.roc_curve(y_true, y_preds)
-    AUC_ROC = metrics.roc_auc_score(y_true, y_preds)
-    # test_integral = np.trapz(tpr,fpr) #trapz is numpy integration
-    print ("\nArea under the ROC curve: " +str(AUC_ROC))
-    roc_curve =plt.figure()
-    plt.plot(fpr,tpr,'-',label='Area Under the Curve (AUC = %0.4f)' % AUC_ROC)
-    plt.title('ROC curve')
-    plt.xlabel("FPR (False Positive Rate)")
-    plt.ylabel("TPR (True Positive Rate)")
-    plt.legend(loc="lower right")
+# function to convert it to csv file
+def convert_to_csv(prediction,metrics_dir):
+    prediction.to_csv(metrics_dir, header=True, index=False)
 
+if __name__ == "__main__":
+    # Test Metric Plotting
 
-#plotting presicion-recall for each epoch
-def precision_recall_curve_plot(y_true, y_preds):
-    
-    precision, recall, thresholds = metrics.precision_recall_curve(y_true, y_preds)
-    precision = np.fliplr([precision])[0]  #so the array is increasing (you won't get negative AUC)
-    recall = np.fliplr([recall])[0]  #so the array is increasing (you won't get negative AUC)
-    AUC_prec_rec = np.trapz(precision,recall)
-    print ("\nArea under Precision-Recall curve: " +str(AUC_prec_rec))
-    prec_rec_curve = plt.figure()
-    plt.plot(recall,precision,'-',label='Area Under the Curve (AUC = %0.4f)' % AUC_prec_rec)
-    plt.title('Precision - Recall curve')
-    plt.xlabel("Recall")
-    plt.ylabel("Precision")
-    plt.legend(loc="lower right")
-    
-    
-#plotting curve for all the metrics
-def plotting_metrics(file_name):
-    
-    #accuracy
-    fig, ax = plt.subplots(figsize=(8, 8))
-    file_name['Accuracy'].plot.line(color = 'red')
-    plt.xlabel("Epoch")
-    plt.ylabel("Accuracy")
-    plt.title("Accuracy")
-    plt.show()
-    plt.savefig('accuracy.png', dpi=300, bbox_inches='tight')
-    
-    #IOU
-    fig, ax = plt.subplots(figsize=(8, 8))
-    file_name['IoU'].plot.line(color = 'blue')
-    plt.xlabel("Epoch")
-    plt.ylabel("IoU")
-    plt.title("IoU")
-    plt.show()
-    plt.savefig('IoU.png', dpi=300, bbox_inches='tight')
-   
-    #Dice
-    fig, ax = plt.subplots(figsize=(8, 8))
-    file_name['Dice'].plot.line(color = 'green')
-    plt.xlabel("Epoch")
-    plt.ylabel("Dice")
-    plt.title("Dice")
-    plt.show()
-    plt.savefig('dice.png', dpi=300, bbox_inches='tight')
-    
-    #f1_score
-    fig, ax = plt.subplots(figsize=(8, 8))
-    file_name['f1_score'].plot.line(color = 'blue')
-    plt.xlabel("Epoch")
-    plt.ylabel("f1_score")
-    plt.title("f1_score")
-    plt.show()
-    plt.savefig('f1_score.png', dpi=300, bbox_inches='tight')
-    
-    #Precision
-    fig, ax = plt.subplots(figsize=(8, 8))
-    file_name['Precision'].plot.line(color = 'orange')
-    plt.xlabel("Epoch")
-    plt.ylabel("Precision")
-    plt.title("Precision")
-    plt.show()
-    plt.savefig('precision.png', dpi=300, bbox_inches='tight')
-    
-    #Recall
-    fig, ax = plt.subplots(figsize=(8, 8))
-    file_name['Recall'].plot.line(color = 'purple')
-    plt.xlabel("Epoch")
-    plt.ylabel("Recall")
-    plt.title("Recall")
-    plt.show()
-    plt.savefig('recall.png', dpi=300, bbox_inches='tight')
-    
-    #Specificity
-    fig, ax = plt.subplots(figsize=(8, 8))
-    file_name['Specificity'].plot.line(color = 'red')
-    plt.xlabel("Epoch")
-    plt.ylabel("Specificity")
-    plt.title("Specificity")
-    plt.show()
-    plt.savefig('specificity.png', dpi=300, bbox_inches='tight')
-
-#function to convert it to csv file
-def convert_to_csv(prediction):
-    if(os.path.isfile('metrics.csv')):
-        os.remove('metrics.csv')
-    prediction.to_csv(r'./metrics.csv', header=True)
-
+    Results_dataframe = pd.read_csv(metrics_dir_path, index_col=False)
+    # plotting_metrics(Results_dataframe)
+    #plot_loss(Results_dataframe)
