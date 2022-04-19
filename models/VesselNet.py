@@ -37,7 +37,7 @@ class Vessel_net(nn.Module):
                 DoubleConv(in_channels=feature * 2, out_channels=feature)
             )
 
-        self.bottleneck = CBAMBlock(channel=256)
+        self.bottleneck = CBAMBlock(channel=256) #CHANGE THIS WHEN BIG MODEL IS USED
         self.final_conv = nn.Conv2d(features[0], out_channels, kernel_size=1)
 
     def forward(self, x):
