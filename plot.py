@@ -151,6 +151,18 @@ def plotting_metrics(Results_dataframe):
 
     plt.savefig('./metrics_plots/MCC.png', dpi=300, bbox_inches='tight')
     plt.close()
+    
+    #Kappa
+    fig, ax = plt.subplots(figsize=(8, 8))
+    sns.lineplot(x='Epoch_no', y='Train_Kappa', data=Results_dataframe, color='red')
+    sns.lineplot(x='Epoch_no', y='Val_Kappa', data=Results_dataframe, color='blue')
+    plt.xlabel("Epoch")
+    plt.ylabel("Kappa")
+    plt.title("Kappa Score")
+    plt.legend(["Train", "Val"], loc="upper right")
+
+    plt.savefig('./metrics_plots/Kappa.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
 # Plot Training and Validation loss vs EPOCHS
 def plot_loss(dataframe):
