@@ -11,7 +11,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Defining the main Encoder decoder model using the double convolution class
 class Vessel_net(nn.Module):
-    def __init__(self, in_channels=3, out_channels=1, features=[32, 64, 128]):
+    def __init__(self, in_channels=3, out_channels=1, features=[16, 32, 64]):
         super(Vessel_net, self).__init__()
         self.downs = nn.ModuleList()
         self.ups = nn.ModuleList()
